@@ -2,20 +2,17 @@
 layout: home
 hero:
   name: 技术知识库
-  text: 从原理到实现
-  tagline: 以 Markdown 为源，持续整理可阅读、可检索、可复用的技术知识。
+  text: 以 Markdown 为核心的个人知识库
+  tagline: 面向人类阅读，也面向 AI 检索
   actions:
     - theme: brand
-      text: 浏览全部文章
+      text: 浏览文章
       link: /articles/
-    - theme: alt
-      text: 查看仓库
-      link: https://github.com/zhanghuiwan/knowledge-base
 features:
-  - title: RT-DETR
-    details: 实时检测 Transformer 的研究背景、混合编码器、Query Selection、Decoder 与源码实现。
-    link: /articles/rt-detr/
-  - title: RF-DETR
-    details: 基于视觉 Transformer 的实时检测架构、Windowed Attention、多尺度特征融合与权重共享 NAS。
-    link: /articles/rf-detr/
+  - title: Markdown 原文
+    details: 所有知识内容以 Markdown 文件保存，方便阅读、编辑、版本管理和 AI 工具读取。
+  - title: 专注阅读
+    details: 简洁的文章导航、目录、代码高亮、数学公式与 Mermaid 图表。
+  - title: GitHub 驱动
+    details: 通过 Git 管理内容，推送后自动构建并发布网站。
 ---

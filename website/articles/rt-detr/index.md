@@ -1,18 +1,3 @@
----
-title: "RT-DETR：Real-Time Detection Transformer 原理、网络结构与源码解析"
-description: "围绕 RT-DETR 的研究背景、Efficient Hybrid Encoder、Query Selection、Transformer Decoder、训练损失和源码实现展开。"
-tags:
-  - "RT-DETR"
-  - "目标检测"
-  - "Transformer"
-keywords:
-  - "AIFI"
-  - "CCFF"
-  - "Query Selection"
-  - "Deformable Attention"
-  - "Decoder"
-updated: 2026-11-13
----
 # RT-DETR：Real-Time Detection Transformer 原理、网络结构与源码解析
 
 > 论文：DETRs Beat YOLOs on Real-time Object Detection  

@@ -1,18 +1,3 @@
----
-title: "RF-DETR：实时目标检测 Transformer 原理、网络架构、NAS 搜索与源码解析"
-description: "围绕 RF-DETR 的 ViT Backbone、Windowed Attention、MultiScale Projector、Deformable Decoder 和 Weight-sharing NAS 展开。"
-tags:
-  - "RF-DETR"
-  - "目标检测"
-  - "Vision Transformer"
-  - "NAS"
-keywords:
-  - "DINOv2"
-  - "Windowed Attention"
-  - "Deformable Attention"
-  - "Weight-sharing NAS"
-updated: 2026-11-13
----
 # RF-DETR：实时目标检测 Transformer 原理、网络架构、NAS 搜索与源码解析
 
 > 论文：RF-DETR: Neural Architecture Search for Real-Time Detection Transformers  

@@ -1,17 +1,5 @@
 # 技术知识库
 
-这是一个以 Markdown 为源的技术知识库。网站使用 VitePress 生成，知识文章的原始文件保存在 GitHub 仓库中。
-
-## 文章入口
-
-- RT-DETR：/knowledge-base/articles/rt-detr/
-  - 原始 Markdown：`website/articles/rt-detr/index.md`
-- RF-DETR：/knowledge-base/articles/rf-detr/
-  - 原始 Markdown：`website/articles/rf-detr/index.md`
-
-## AI 读取建议
-
-- 阅读仓库根目录 `AGENTS.md` 了解项目规则。
-- 阅读 `website/articles/index.md` 查看文章清单。
-- 回答知识问题时优先读取对应 Markdown 原文，而不是只依赖网页摘要。
-- 每篇文章的图片和附件（如有）位于同目录的 `assets/` 文件夹。
+Markdown 原文位于 GitHub 仓库 website/articles/。
+- RT-DETR: /articles/rt-detr/
+- RF-DETR: /articles/rf-detr/
