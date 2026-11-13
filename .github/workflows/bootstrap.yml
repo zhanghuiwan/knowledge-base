@@ -34,9 +34,10 @@ jobs:
           unzip -q /tmp/knowledge-base.zip -d /tmp/knowledge-base-unpacked
           cp -a /tmp/knowledge-base-unpacked/knowledge-base/. .
           rm -rf .bootstrap
-          rm -f .github/workflows/bootstrap.yml
+          # 部署工作流稍后通过 GitHub 连接单独创建，避免 Actions 的 GITHUB_TOKEN 权限限制
+          rm -f .github/workflows/deploy.yml
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.email "41898282+zhanghuiwan@users.noreply.github.com"
           git add -A
           if ! git diff --cached --quiet; then
             git commit -m "导入知识库网站源码"
