@@ -10,7 +10,17 @@ export default defineConfig({
   lastUpdated: true,
   markdown: {
     lineNumbers: true,
-    config(md) { md.use(mathjax3) }
+    config(md) {
+      md.use(mathjax3)
+      const defaultFence = md.renderer.rules.fence
+      md.renderer.rules.fence = (tokens, idx, options, env, self) => {
+        const token = tokens[idx]
+        if (token.info.trim() === 'mermaid') {
+          return '<pre class="mermaid">' + md.utils.escapeHtml(token.content) + '</pre>'
+        }
+        return defaultFence(tokens, idx, options, env, self)
+      }
+    }
   },
   themeConfig: {
     nav: [{ text: '首页', link: '/' }, { text: '文章', link: '/articles/' }],
