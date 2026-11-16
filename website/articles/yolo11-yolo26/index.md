@@ -180,7 +180,7 @@ Channels   = 3
 
 输入张量：
 
-$ X\in\mathbb{R}^{B\times3\times640\times640} $
+$$X\in\mathbb{R}^{B\times3\times640\times640}$$
 
 经过 Backbone：
 
@@ -217,17 +217,17 @@ flowchart TD
 
 例如：
 
-$ P3=\frac{640}{8}=80 $
+$$P3=\frac{640}{8}=80$$
 
-$ P4=\frac{640}{16}=40 $
+$$P4=\frac{640}{16}=40$$
 
-$ P5=\frac{640}{32}=20 $
+$$P5=\frac{640}{32}=20$$
 
 三个特征图总共包含：
 
-$ N=80^2+40^2+20^2 $
+$$N=80^2+40^2+20^2$$
 
-$ \boxed{N=8400} $
+$$\boxed{N=8400}$$
 
 也就是说，常规 YOLO 检测 Head 在 640×640 输入下，一共需要处理 8400 个候选位置。
 
@@ -334,15 +334,15 @@ scales:
 
 假设 YAML 中某个模块重复 6 次：
 
-$ N=\max(\operatorname{round}(6\times d),1) $
+$$N=\max(\operatorname{round}(6\times d),1)$$
 
 如果：
 
-$ d=0.5 $
+$$d=0.5$$
 
 那么：
 
-$ N=3 $
+$$N=3$$
 
 **Width Multiple：宽度系数**
 
@@ -350,15 +350,15 @@ $ N=3 $
 
 假设原始通道为 256：
 
-$ C=256\times w $
+$$C=256\times w$$
 
 如果：
 
-$ w=0.25 $
+$$w=0.25$$
 
 则：
 
-$ C=64 $
+$$C=64$$
 
 实际实现还会考虑通道对齐和最大通道限制。
 
@@ -518,7 +518,7 @@ SiLU
 
 公式：
 
-$ Y=SiLU(BN(W*X)) $
+$$Y=SiLU(BN(W*X))$$
 
 其中：
 
@@ -529,26 +529,26 @@ $ Y=SiLU(BN(W*X)) $
 
 SiLU：
 
-$ SiLU(x)=x\cdot\sigma(x) $
+$$SiLU(x)=x\cdot\sigma(x)$$
 
-$ \sigma(x)=\frac{1}{1+e^{-x}} $
+$$\sigma(x)=\frac{1}{1+e^{-x}}$$
 
 对于一个普通卷积：
 
 参数量：
 
-$ P=K_hK_wC_{in}C_{out} $
+$$P=K_hK_wC_{in}C_{out}$$
 
 如果使用 Bias，还需要增加：
 
-$ +C_{out} $
+$$+C_{out}$$
 
 如果使用 BatchNorm，还需要考虑其可学习的缩放和偏移参数。
 
 卷积计算量近似为：
 
-$ FLOPs=
-2H_{out}W_{out}K_hK_wC_{in}C_{out} $
+$$FLOPs=
+2H_{out}W_{out}K_hK_wC_{in}C_{out}$$
 
 这里按照一次乘法和一次加法分别计为一次 FLOP。
 
@@ -587,18 +587,18 @@ flowchart TD
 
 假设输入：
 
-$ X\in\mathbb{R}^{B\times C_{in}\times H\times W} $
+$$X\in\mathbb{R}^{B\times C_{in}\times H\times W}$$
 
 首先经过 Conv：
 
-$ C_{hidden}=C_{out}\times e $
+$$C_{hidden}=C_{out}\times e$$
 
 其中 e 是 Expansion Ratio。
 
 然后分为两部分：
 
-$ X_1,X_2\in
-\mathbb{R}^{B\times C_{hidden}\times H\times W} $
+$$X_1,X_2\in
+\mathbb{R}^{B\times C_{hidden}\times H\times W}$$
 
 其中：
 
@@ -609,11 +609,11 @@ $ X_1,X_2\in
 
 最终将所有特征拼接：
 
-$ Y=Concat(X_1,X_2,Y_1,\ldots,Y_n) $
+$$Y=Concat(X_1,X_2,Y_1,\ldots,Y_n)$$
 
 拼接后的通道数量：
 
-$ C_{concat}=(2+n)C_{hidden} $
+$$C_{concat}=(2+n)C_{hidden}$$
 
 最后通过一个 1×1 Conv 融合通道。
 
@@ -794,15 +794,15 @@ flowchart TD
 
 第一次：
 
-$ K_1=5 $
+$$K_1=5$$
 
 第二次：
 
-$ K_2=5+5-1=9 $
+$$K_2=5+5-1=9$$
 
 第三次：
 
-$ K_3=9+5-1=13 $
+$$K_3=9+5-1=13$$
 
 因此可以得到：
 
@@ -850,15 +850,15 @@ flowchart TD
 
 首先：
 
-$ C_{hidden}=C_{in}\times0.5 $
+$$C_{hidden}=C_{in}\times0.5$$
 
 通过 1×1 Conv 将通道变为：
 
-$ 2C_{hidden} $
+$$2C_{hidden}$$
 
 然后分为两个分支：
 
-$ A,B\in\mathbb{R}^{B\times C_{hidden}\times H\times W} $
+$$A,B\in\mathbb{R}^{B\times C_{hidden}\times H\times W}$$
 
 其中：
 
@@ -867,7 +867,7 @@ $ A,B\in\mathbb{R}^{B\times C_{hidden}\times H\times W} $
 
 最后：
 
-$ Y=Conv(Concat(A,PSA(B))) $
+$$Y=Conv(Concat(A,PSA(B)))$$
 
 #### PSABlock 内部结构
 PSABlock 主要包含：
@@ -893,50 +893,50 @@ Attention 内部：
 
 假设：
 
-$ X\in\mathbb{R}^{B\times C\times H\times W} $
+$$X\in\mathbb{R}^{B\times C\times H\times W}$$
 
 空间位置数量：
 
-$ N=H\times W $
+$$N=H\times W$$
 
 Attention Head 数量：
 
-$ n_h=\max(C/64,1) $
+$$n_h=\max(C/64,1)$$
 
 Head Dimension：
 
-$ d_h=C/n_h $
+$$d_h=C/n_h$$
 
 PSA 的注意力比例：
 
-$ r=0.5 $
+$$r=0.5$$
 
 因此：
 
-$ d_k=\lfloor d_h\times0.5\rfloor $
+$$d_k=\lfloor d_h\times0.5\rfloor$$
 
-每个 Head 的 Q、K 维度为 $ d_k $，V 维度为 $ d_h $。
+每个 Head 的 Q、K 维度为 $d_k$，V 维度为 $d_h$。
 
 将特征图展平为 N 个空间位置，计算：
 
-$ A=
+$$A=
 Softmax\left(
 \frac{Q^TK}{\sqrt{d_k}}
-\right) $
+\right)$$
 
 其中：
 
-$ A\in\mathbb{R}^{B\times n_h\times N\times N} $
+$$A\in\mathbb{R}^{B\times n_h\times N\times N}$$
 
 然后：
 
-$ O=VA^T $
+$$O=VA^T$$
 
 再将结果恢复成二维特征图。
 
 另外，源码还对 V 使用了 Depthwise 3×3 卷积作为位置编码分支：
 
-$ O=Attention(Q,K,V)+DWConv_{3\times3}(V) $
+$$O=Attention(Q,K,V)+DWConv_{3\times3}(V)$$
 
 最终经过 1×1 Conv 投影。
 
@@ -957,19 +957,19 @@ C2PSA 通常放置在 Backbone 的深层位置。
 
 输入：
 
-$ [B,1024,20,20] $
+$$[B,1024,20,20]$$
 
 空间位置数量：
 
-$ N=20\times20=400 $
+$$N=20\times20=400$$
 
 Attention 需要处理的空间关系矩阵规模为：
 
-$ 400\times400 $
+$$400\times400$$
 
 如果直接在 80×80 特征图上进行同样的 Attention：
 
-$ 6400\times6400 $
+$$6400\times6400$$
 
 计算成本会大幅增加。
 
@@ -1048,7 +1048,7 @@ reg_max = 16
 
 每个候选位置的边界框回归输出：
 
-$ 4\times16=64 $
+$$4\times16=64$$
 
 其中 4 代表：
 
@@ -1059,25 +1059,25 @@ $ 4\times16=64 $
 
 分类输出：
 
-$ 80 $
+$$80$$
 
 因此每个位置的输出通道数：
 
-$ C=4\times16+80 $
+$$C=4\times16+80$$
 
-$ \boxed{C=144} $
+$$\boxed{C=144}$$
 
 假设输入为 640×640：
 
 候选位置数量：
 
-$ N=8400 $
+$$N=8400$$
 
 最终原始预测张量：
 
-$ \boxed{
+$$\boxed{
 Y\in\mathbb{R}^{B\times144\times8400}
-} $
+}$$
 
 这里的 144 不是最终检测框的数量，而是每个候选位置的预测通道数量。
 
@@ -1092,7 +1092,7 @@ Distribution Focal Loss。
 
 模型直接预测一个距离值：
 
-$ d=12.5 $
+$$d=12.5$$
 
 DFL：
 
@@ -1100,7 +1100,7 @@ DFL：
 
 假设：
 
-$ reg\_max=16 $
+$$reg\_max=16$$
 
 那么每个边界距离有 16 个 Bin：
 
@@ -1112,19 +1112,19 @@ Bin：
 
 模型输出：
 
-$ z\in\mathbb{R}^{16} $
+$$z\in\mathbb{R}^{16}$$
 
 经过 Softmax：
 
-$ p_i=
+$$p_i=
 \frac{e^{z_i}}
-{\sum_{j=0}^{15}e^{z_j}} $
+{\sum_{j=0}^{15}e^{z_j}}$$
 
 最终距离：
 
-$ \boxed{
+$$\boxed{
 d=\sum_{i=0}^{15}i\cdot p_i
-} $
+}$$
 
 例如：
 
@@ -1140,12 +1140,12 @@ Bin 13：0.2
 
 最终：
 
-$ d=10\times0.1+
+$$d=10\times0.1+
 11\times0.2+
 12\times0.5+
-13\times0.2 $
+13\times0.2$$
 
-$ d=11.8 $
+$$d=11.8$$
 
 因此模型最终可以输出连续的距离值。
 
@@ -1165,29 +1165,29 @@ DFL：
 ### 5.5 边界框解码
 DFL 输出四个距离：
 
-$ (l,t,r,b) $
+$$(l,t,r,b)$$
 
 假设参考点：
 
-$ (a_x,a_y) $
+$$(a_x,a_y)$$
 
 特征图对应的 Stride：
 
-$ s $
+$$s$$
 
 那么：
 
-$ x_1=a_x-ls $
+$$x_1=a_x-ls$$
 
-$ y_1=a_y-ts $
+$$y_1=a_y-ts$$
 
-$ x_2=a_x+rs $
+$$x_2=a_x+rs$$
 
-$ y_2=a_y+bs $
+$$y_2=a_y+bs$$
 
 最终得到：
 
-$ B=(x_1,y_1,x_2,y_2) $
+$$B=(x_1,y_1,x_2,y_2)$$
 
 再结合分类分数得到最终检测结果。
 
@@ -1198,25 +1198,25 @@ $ B=(x_1,y_1,x_2,y_2) $
 
 使用 BCE Loss。
 
-$ L_{cls}=BCE(p,y) $
+$$L_{cls}=BCE(p,y)$$
 
 **边界框损失：**
 
 使用 IoU 系列损失，Ultralytics 检测实现中使用 CIoU。
 
-$ L_{box}=1-CIoU(B_{pred},B_{gt}) $
+$$L_{box}=1-CIoU(B_{pred},B_{gt})$$
 
 **DFL 损失：**
 
 约束边界距离分布。
 
-$ L_{dfl}=DFL(z,d_{gt}) $
+$$L_{dfl}=DFL(z,d_{gt})$$
 
 总损失：
 
-$ \boxed{
+$$\boxed{
 L=L_{box}+L_{cls}+L_{dfl}
-} $
+}$$
 
 实际训练中还会受到不同损失权重的影响。
 
@@ -1352,7 +1352,7 @@ YOLO26 训练时使用两个检测分支，但两个分支共享 Backbone 和 Ne
 
 640×640 输入：
 
-$ N=8400 $
+$$N=8400$$
 
 意味着模型可能输出 8400 个候选位置的预测结果。
 
@@ -1439,17 +1439,17 @@ YOLO26 的 One-to-Many 使用 TAL。
 
 主要配置：
 
-$ TopK=10 $
+$$TopK=10$$
 
 输出仍然是传统 YOLO 密集预测格式。
 
 640×640、80 类：
 
-$ Y\in\mathbb{R}^{B\times84\times8400} $
+$$Y\in\mathbb{R}^{B\times84\times8400}$$
 
 因为 YOLO26 不使用 DFL：
 
-$ 84=80+4 $
+$$84=80+4$$
 
 推理时仍然需要 NMS。
 
@@ -1506,9 +1506,9 @@ Secondary TopK = 1
 
 输出：
 
-$ \boxed{
+$$\boxed{
 Y\in\mathbb{R}^{B\times300\times6}
-} $
+}$$
 
 每个预测包含：
 
@@ -1603,19 +1603,19 @@ YOLO11 使用 DFL。
 
 假设：
 
-$ reg\_max=16 $
+$$reg\_max=16$$
 
 每个边界距离需要预测 16 个数值。
 
 四个方向：
 
-$ 4\times16=64 $
+$$4\times16=64$$
 
 YOLO26：
 
 直接预测四个边界距离。
 
-$ 4\times1=4 $
+$$4\times1=4$$
 
 这样检测 Head 的回归输出通道从 64 降低为 4。
 
@@ -1623,16 +1623,16 @@ $ 4\times1=4 $
 
 YOLO11：
 
-$ C=80+64=144 $
+$$C=80+64=144$$
 
 YOLO26：
 
-$ C=80+4=84 $
+$$C=80+4=84$$
 
 减少：
 
-$ \frac{144-84}{144}
-\approx41.67\% $
+$$\frac{144-84}{144}
+\approx41.67\%$$
 
 注意：
 
@@ -1641,11 +1641,11 @@ $ \frac{144-84}{144}
 ### 8.2 DFL 的最大回归范围
 DFL 使用：
 
-$ d=\sum_{i=0}^{15}i\cdot p_i $
+$$d=\sum_{i=0}^{15}i\cdot p_i$$
 
 因此：
 
-$ d\in[0,15] $
+$$d\in[0,15]$$
 
 实际距离还需要乘以特征层的 Stride。
 
@@ -1653,13 +1653,13 @@ $ d\in[0,15] $
 
 P5：
 
-$ s=32 $
+$$s=32$$
 
 最大单边距离：
 
-$ d_{max}=15\times32 $
+$$d_{max}=15\times32$$
 
-$ d_{max}=480 $
+$$d_{max}=480$$
 
 这意味着在对应特征层上，DFL 的单边距离存在有限的离散支持范围。
 
@@ -1680,15 +1680,15 @@ self.dfl = DFL(self.reg_max) if self.reg_max > 1 else nn.Identity()
 
 因此：
 
-$ reg\_max=1 $
+$$reg\_max=1$$
 
 时：
 
-$ DFL=Identity $
+$$DFL=Identity$$
 
 检测 Head 直接输出：
 
-$ (l,t,r,b) $
+$$(l,t,r,b)$$
 
 不再经过 16 个 Bin 的 Softmax 和期望计算。
 
@@ -1705,16 +1705,16 @@ YOLO26 不是简单地删除 DFL。
 
 L1 Loss：
 
-$ L_{L1}
+$$L_{L1}
 =
 \frac{1}{N}
 \sum_{i=1}^{N}
-|x_i-\hat{x}_i| $
+|x_i-\hat{x}_i|$$
 
 其中：
 
-+ $ x_i $：真实坐标。
-+ $ \hat{x}_i $：预测坐标。
++ $x_i$：真实坐标。
++ $\hat{x}_i$：预测坐标。
 
 它直接约束预测坐标与真实坐标之间的绝对误差。
 
@@ -1750,7 +1750,7 @@ Task-Aligned Learning。
 
 假设检测特征层最小 Stride：
 
-$ s_{min}=8 $
+$$s_{min}=8$$
 
 特征图中相邻两个位置对应原图 8 个像素。
 
@@ -1801,49 +1801,49 @@ Small-Target-Aware Label Assignment。
 
 原始目标：
 
-$ g_i=(x_i,y_i,w_i,h_i) $
+$$g_i=(x_i,y_i,w_i,h_i)$$
 
 其中：
 
-+ $ x_i,y_i $：中心坐标。
-+ $ w_i,h_i $：宽高。
++ $x_i,y_i$：中心坐标。
++ $w_i,h_i$：宽高。
 
 首先确定：
 
-$ s_{min}=8 $
+$$s_{min}=8$$
 
 参考尺寸：
 
-$ s_{ref}=16 $
+$$s_{ref}=16$$
 
 如果目标某一个维度小于 8，则仅在候选位置筛选时，将该维度调整为 16。
 
 公式：
 
-$ \tilde{d}_i=
+$$\tilde{d}_i=
 \begin{cases}
 s_{ref},&d_i<s_{min}\\
 d_i,&\text{otherwise}
-\end{cases} $
+\end{cases}$$
 
 其中：
 
-$ d_i\in\{w_i,h_i\} $
+$$d_i\in\{w_i,h_i\}$$
 
 得到新的候选筛选框：
 
-$ \tilde{g}_i=
-(x_i,y_i,\tilde{w}_i,\tilde{h}_i) $
+$$\tilde{g}_i=
+(x_i,y_i,\tilde{w}_i,\tilde{h}_i)$$
 
 然后根据新的几何范围判断候选点：
 
-$ M_{ij}=
+$$M_{ij}=
 \begin{cases}
 1,&a_j\in\tilde{g}_i\\
 0,&a_j\notin\tilde{g}_i
-\end{cases} $
+\end{cases}$$
 
-其中 $ a_j $ 是特征图中的候选点中心。
+其中 $a_j$ 是特征图中的候选点中心。
 
 ### 9.3 STAL 举例
 假设：
@@ -1861,9 +1861,9 @@ $ M_{ij}=
 
 候选筛选时：
 
-$ \tilde{w}=16 $
+$$\tilde{w}=16$$
 
-$ \tilde{h}=12 $
+$$\tilde{h}=12$$
 
 因此：
 
@@ -1959,31 +1959,31 @@ One-to-Many 可能在训练中占据较大优势。
 
 总损失：
 
-$ \boxed{
+$$\boxed{
 L=
 \alpha(t)L_{one2many}
 +
 (1-\alpha(t))L_{one2one}
-} $
+}$$
 
 其中：
 
-+ $ t $：当前 Epoch。
-+ $ \alpha(t) $：One-to-Many 的权重。
++ $t$：当前 Epoch。
++ $\alpha(t)$：One-to-Many 的权重。
 
 YOLO26 的权重：
 
 初始：
 
-$ (\alpha_{init},1-\alpha_{init})
+$$(\alpha_{init},1-\alpha_{init})
 =
-(0.8,0.2) $
+(0.8,0.2)$$
 
 最终：
 
-$ (\alpha_{final},1-\alpha_{final})
+$$(\alpha_{final},1-\alpha_{final})
 =
-(0.1,0.9) $
+(0.1,0.9)$$
 
 也就是说：
 
@@ -2005,12 +2005,12 @@ One-to-One  = 90%
 ### 10.3 权重如何变化？
 使用线性变化：
 
-$ \alpha(t)=
+$$\alpha(t)=
 \max\left(
 1-\frac{t}{\max(E-1,1)},0
 \right)
 (\alpha_{init}-\alpha_{final})
-+\alpha_{final} $
++\alpha_{final}$$
 
 其中：
 
@@ -2020,15 +2020,15 @@ $ \alpha(t)=
 
 总训练 Epoch：
 
-$ E=100 $
+$$E=100$$
 
 初始权重：
 
-$ \alpha_{init}=0.8 $
+$$\alpha_{init}=0.8$$
 
 最终权重：
 
-$ \alpha_{final}=0.1 $
+$$\alpha_{final}=0.1$$
 
 那么：
 
@@ -2083,17 +2083,17 @@ Muon 是一种主要面向多维参数矩阵的优化器。
 ### 11.2 MuSGD 的核心思想
 SGD：
 
-$ \theta_{t+1}
+$$\theta_{t+1}
 =
-\theta_t-\eta g_t $
+\theta_t-\eta g_t$$
 
 加入 Momentum：
 
-$ m_t=\beta m_{t-1}+g_t $
+$$m_t=\beta m_{t-1}+g_t$$
 
-$ \theta_{t+1}
+$$\theta_{t+1}
 =
-\theta_t-\eta m_t $
+\theta_t-\eta m_t$$
 
 Muon：
 
@@ -2101,24 +2101,24 @@ Muon：
 
 简化表示：
 
-$ U_t=Orthogonalize(m_t) $
+$$U_t=Orthogonalize(m_t)$$
 
 Muon 更新：
 
-$ \theta_{t+1}
+$$\theta_{t+1}
 =
-\theta_t-\eta U_t $
+\theta_t-\eta U_t$$
 
 MuSGD 则将 Muon 和 SGD 的更新进行加权组合。
 
 对于多维参数：
 
-$ \boxed{
+$$\boxed{
 \Delta\theta=
 \lambda_m\Delta\theta_{Muon}
 +
 \lambda_s\Delta\theta_{SGD}
-} $
+}$$
 
 对于一维参数，例如：
 
@@ -2140,7 +2140,7 @@ Newton-Schulz 是一种矩阵迭代方法。
 
 对于矩阵 X：
 
-$ X^TX\approx I $
+$$X^TX\approx I$$
 
 迭代过程中，通过矩阵乘法不断修正矩阵的奇异值结构。
 
@@ -2199,7 +2199,7 @@ YOLO26 不仅针对 Detection 进行了优化，还针对 Segmentation、Pose �
 
 假设：
 
-$ P\in\mathbb{R}^{K\times H\times W} $
+$$P\in\mathbb{R}^{K\times H\times W}$$
 
 其中：
 
@@ -2207,13 +2207,13 @@ K 是 Prototype 数量。
 
 某个实例的系数：
 
-$ c_i\in\mathbb{R}^{K} $
+$$c_i\in\mathbb{R}^{K}$$
 
 最终 Mask：
 
-$ \boxed{
+$$\boxed{
 M_i=\sum_{k=1}^{K}c_{ik}P_k
-} $
+}$$
 
 YOLO26 保留了这一基本思想。
 
@@ -2227,21 +2227,21 @@ YOLO26 保留了这一基本思想。
 
 YOLO26 则融合多个尺度的特征：
 
-$ F_{proto}
+$$F_{proto}
 =
 X_1+
 \sum_{\ell=2}^{L}
-U(\phi_\ell(X_\ell)) $
+U(\phi_\ell(X_\ell))$$
 
 其中：
 
-+ $ X_1 $：最高分辨率特征。
-+ $ \phi_\ell $：1×1 Conv 投影。
++ $X_1$：最高分辨率特征。
++ $\phi_\ell$：1×1 Conv 投影。
 + U：上采样。
 
 然后生成：
 
-$ P=\tilde G(F_{proto}) $
+$$P=\tilde G(F_{proto})$$
 
 这样可以同时利用：
 
@@ -2305,37 +2305,37 @@ YOLO26 为每个关键点增加一个不确定性预测分支。
 
 预测：
 
-$ \sigma=(\sigma_x,\sigma_y) $
+$$\sigma=(\sigma_x,\sigma_y)$$
 
 然后计算归一化残差：
 
-$ \boxed{
+$$\boxed{
 \varepsilon=
 \frac{\hat{x}-x^*}{\sigma}
-} $
+}$$
 
 其中：
 
-+ $ \hat{x} $：预测坐标。
-+ $ x^* $：真实坐标。
-+ $ \sigma $：预测的不确定性。
++ $\hat{x}$：预测坐标。
++ $x^*$：真实坐标。
++ $\sigma$：预测的不确定性。
 
 接下来使用 RealNVP Normalizing Flow 学习残差分布。
 
 RLE Loss：
 
-$ L_{RLE}
+$$L_{RLE}
 =
 \log\sigma
 -
 \log\varphi(\varepsilon)
 +
-L_q(\sigma,\varepsilon) $
+L_q(\sigma,\varepsilon)$$
 
 其中：
 
-+ $ \varphi $：学习到的残差概率密度。
-+ $ L_q $：基础概率分布的负对数似然项。
++ $\varphi$：学习到的残差概率密度。
++ $L_q$：基础概率分布的负对数似然项。
 
 可以理解为：
 
@@ -2375,15 +2375,15 @@ Oriented Bounding Box。
 
 传统水平框：
 
-$ (x,y,w,h) $
+$$(x,y,w,h)$$
 
 OBB：
 
-$ (x,y,w,h,\theta) $
+$$(x,y,w,h,\theta)$$
 
 其中：
 
-$ \theta $ 表示旋转角度。
+$\theta$ 表示旋转角度。
 
 YOLO26 对 OBB 主要进行两个改进。
 
@@ -2393,13 +2393,13 @@ YOLO26 对 OBB 主要进行两个改进。
 
 YOLO26 使用 Long-Edge Definition：
 
-$ w\ge h $
+$$w\ge h$$
 
 角度范围：
 
-$ \boxed{
+$$\boxed{
 \theta\in[-45^\circ,135^\circ)
-} $
+}$$
 
 这样可以降低接近边界角度时的宽高交换问题。
 
@@ -2413,18 +2413,18 @@ $ \boxed{
 
 YOLO26 加入专门的角度损失：
 
-$ L_{angle}
+$$L_{angle}
 =
 \frac{1}{S}
 \sum_{i\in\mathcal{F}}
 q_i\omega_i
-\sin^2(2\Delta\theta_i) $
+\sin^2(2\Delta\theta_i)$$
 
 其中：
 
-+ $ q_i $：标签分配权重。
-+ $ \omega_i $：宽高比相关权重。
-+ $ \Delta\theta_i $：角度误差。
++ $q_i$：标签分配权重。
++ $\omega_i$：宽高比相关权重。
++ $\Delta\theta_i$：角度误差。
 
 主要作用：
 
@@ -2879,7 +2879,7 @@ YOLO11：
 
 假设 80 类：
 
-$ 84=80+4 $
+$$84=80+4$$
 
 这里是解码前的密集预测结果。
 
@@ -2950,7 +2950,7 @@ OBB：
 
 Pose 的 57：
 
-$ 6+17\times3=57 $
+$$6+17\times3=57$$
 
 其中：
 
@@ -2959,7 +2959,7 @@ $ 6+17\times3=57 $
 
 Segmentation 的 38：
 
-$ 6+32=38 $
+$$6+32=38$$
 
 其中 32 是 Mask Coefficients。
 
@@ -3035,7 +3035,7 @@ STAL 解决的是正样本候选位置缺失问题。
 
 YOLO26 One-to-One 默认最大输出数量为：
 
-$ max\_det=300 $
+$$max\_det=300$$
 
 如果单张图片中可能存在大量目标，尤其是接近或超过 300 个目标时，需要关注：
 

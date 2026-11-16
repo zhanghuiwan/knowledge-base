@@ -38,7 +38,30 @@ Hidden_Size = 4096
 
 整个模型的数据流：
 
-![ZGCM-1 模型整体数据流图](https://cdn.nlark.com/yuque/__mermaid_v3/acb9c9f6aee5b5266ac3757f6ee519fc.svg)
+整个模型的数据流：
+
+```mermaid
+flowchart TB
+    A["训练文本"] --> B["Tokenizer"]
+    B --> C["Token IDs<br/>[B,T]"]
+    C --> D["Embedding<br/>[B,T,4096]"]
+    D --> L1["第 1–5 层<br/>SWA × 5"]
+    L1 --> G1["第 6 层<br/>Global"]
+    G1 --> L2["第 7–11 层<br/>SWA × 5"]
+    L2 --> G2["第 12 层<br/>Global"]
+    G2 --> L3["第 13–17 层<br/>SWA × 5"]
+    L3 --> G3["第 18 层<br/>Global"]
+    G3 --> L4["第 19–23 层<br/>SWA × 5"]
+    L4 --> G4["第 24 层<br/>Global"]
+    G4 --> L5["第 25–29 层<br/>SWA × 5"]
+    L5 --> G5["第 30 层<br/>Global"]
+    G5 --> L6["第 31–32 层<br/>SWA × 2"]
+    L6 --> N["Final RMSNorm<br/>[B,T,4096]"]
+    N --> H["LM Head<br/>4096 → 154880"]
+    H --> O["Logits<br/>[B,T,154880]"]
+    O --> S["错位对齐 Labels<br/>并应用 Loss Mask"]
+    S --> X["Cross Entropy Loss"]
+```
 
 ---
 
@@ -76,15 +99,15 @@ batch = [
 
 输入 Tensor：
 
-$ Input\in\mathbb{R}^{B\times T} $
+$$Input\in\mathbb{R}^{B\times T}$$
 
 其中：
 
-$ B=2,\qquad T=4 $
+$$B=2,\qquad T=4$$
 
 因此：
 
-$ Input\in\mathbb{R}^{2\times4} $
+$$Input\in\mathbb{R}^{2\times4}$$
 
 实际 Tensor：
 
@@ -118,7 +141,7 @@ tensor([
 
 此时：
 
-$ Input\in\mathbb{R}^{2\times4} $
+$$Input\in\mathbb{R}^{2\times4}$$
 
 同时需要记录哪些位置是有效 Token，哪些位置是 Padding。
 
@@ -132,7 +155,7 @@ Padding Mask 会防止模型将无效位置当作真实文本参与注意力计�
 ### 3.1 为什么需要 Embedding？
 刚才输入的是：
 
-$ Input\in\mathbb{R}^{2\times4} $
+$$Input\in\mathbb{R}^{2\times4}$$
 
 里面的 1024、2345 等数字只是 Token 的编号。
 
@@ -149,7 +172,7 @@ Hidden Size     = 4096
 
 Embedding 矩阵：
 
-$ W_{emb}\in\mathbb{R}^{154880\times4096} $
+$$W_{emb}\in\mathbb{R}^{154880\times4096}$$
 
 它是一个可训练的参数矩阵。
 
@@ -166,13 +189,13 @@ Embedding 的操作不是复杂的矩阵计算，而是查表。
 
 例如：
 
-$ e_1=W_{emb}[1024] $
+$$e_1=W_{emb}[1024]$$
 
-$ e_2=W_{emb}[2345] $
+$$e_2=W_{emb}[2345]$$
 
-$ e_3=W_{emb}[5678] $
+$$e_3=W_{emb}[5678]$$
 
-$ e_4=W_{emb}[9012] $
+$$e_4=W_{emb}[9012]$$
 
 每次查询都会得到一个 4096 维向量。
 
@@ -188,22 +211,22 @@ Token 9012 → [0.27, 0.19,  0.38, ..., 0.11]
 ### 3.3 Tensor Shape 如何变化？
 输入：
 
-$ Input\in\mathbb{R}^{B\times T} $
+$$Input\in\mathbb{R}^{B\times T}$$
 
 Embedding 后：
 
-$ H=W_{emb}[Input] $
+$$H=W_{emb}[Input]$$
 
 得到：
 
-$ \boxed{H\in\mathbb{R}^{B\times T\times4096}} $
+$$\boxed{H\in\mathbb{R}^{B\times T\times4096}}$$
 
 ---
 
 ## 四、进入 Transformer Block
 现在正式进入 Transformer。输入：
 
-$ X_0\in\mathbb{R}^{B\times T\times4096} $
+$$X_0\in\mathbb{R}^{B\times T\times4096}$$
 
 ZGCM-1 有 32 个 Transformer Layers。
 
@@ -214,18 +237,44 @@ ZGCM-1 有 32 个 Transformer Layers。
 
 一个完整 Transformer Block：
 
-![Transformer Block 结构图](https://cdn.nlark.com/yuque/__mermaid_v3/d5926cd8ed8dcc4c01aabf3ca8a6df53.svg)
+一个完整 Transformer Block：
+
+```mermaid
+flowchart TB
+    X["输入 X<br/>[B,T,4096]"] --> N1["RMSNorm 1"]
+    N1 --> QKV["Q / K / V 线性投影"]
+    QKV --> Q["Q<br/>[B,T,32,128]"]
+    QKV --> K["K<br/>[B,T,8,128]"]
+    QKV --> V["V<br/>[B,T,8,128]"]
+    Q --> QN["QK Norm"]
+    K --> QN
+    QN --> RP["Partial RoPE<br/>仅处理 Q、K"]
+    RP --> ATT["GQA Attention<br/>32 个 Q Head；8 个 KV Head<br/>每组 KV 共享给 4 个 Q Head"]
+    V --> ATT
+    MASK["因果 Mask<br/>SWA 层使用 128 Token 窗口<br/>Global 层关注全部历史"] --> ATT
+    ATT --> GATE["Attention Output Gate<br/>仅 SWA 层使用"]
+    ATT -. "Global 层跳过 Gate" .-> PROJ
+    GATE --> PROJ["Output Projection<br/>4096 → 4096"]
+    PROJ --> ADD1["Residual Add"]
+    X --> ADD1
+    ADD1 --> X1["X₁<br/>[B,T,4096]"]
+    X1 --> N2["RMSNorm 2"]
+    N2 --> FFN["SwiGLU FFN<br/>4096 → 11008 → 4096"]
+    FFN --> ADD2["Residual Add"]
+    X1 --> ADD2
+    ADD2 --> OUT["输出 X₂<br/>[B,T,4096]"]
+```
 
 整个过程中，输入和输出都是：
 
-$ [B,T,4096] $
+$$[B,T,4096]$$
 
 但中间会出现不同的临时维度。
 
 ### 5.1 第一步：RMSNorm
 输入：
 
-$ X\in\mathbb{R}^{B\times T\times4096} $
+$$X\in\mathbb{R}^{B\times T\times4096}$$
 
 首先进行 RMSNorm。
 
@@ -233,13 +282,13 @@ $ X\in\mathbb{R}^{B\times T\times4096} $
 
 RMSNorm 公式：
 
-$ RMSNorm(x)=
+$$RMSNorm(x)=
 \frac{x}{
 \sqrt{
 \frac{1}{D}\sum_{i=1}^{D}x_i^2+\epsilon
 }
 }
-\odot\gamma $
+\odot\gamma$$
 
 其中：
 
@@ -263,7 +312,7 @@ Token 4 的 4096 维向量 → 独立归一化
 
 所以：
 
-$ [B,T,4096]\rightarrow[B,T,4096] $
+$$[B,T,4096]\rightarrow[B,T,4096]$$
 
 归一化改变的是数值，不是 Tensor Shape。
 
@@ -272,7 +321,7 @@ $ [B,T,4096]\rightarrow[B,T,4096] $
 
 输入：
 
-$ X_n\in\mathbb{R}^{B\times T\times4096} $
+$$X_n\in\mathbb{R}^{B\times T\times4096}$$
 
 ZGCM-1：
 
@@ -283,43 +332,43 @@ Head Dim    = 128
 ```
 
 #### Q Projection
-$ Q=X_nW_Q $
+$$Q=X_nW_Q$$
 
-$ W_Q\in\mathbb{R}^{4096\times4096} $
+$$W_Q\in\mathbb{R}^{4096\times4096}$$
 
 所以：
 
-$ Q\in\mathbb{R}^{B\times T\times4096} $
+$$Q\in\mathbb{R}^{B\times T\times4096}$$
 
 然后 Reshape：
 
-$ Q\rightarrow[B,T,32,128] $
+$$Q\rightarrow[B,T,32,128]$$
 
 #### K Projection
-$ K=X_nW_K $
+$$K=X_nW_K$$
 
-$ W_K\in\mathbb{R}^{4096\times1024} $
+$$W_K\in\mathbb{R}^{4096\times1024}$$
 
 所以：
 
-$ K\in\mathbb{R}^{B\times T\times1024} $
+$$K\in\mathbb{R}^{B\times T\times1024}$$
 
 然后 Reshape：
 
-$ K\rightarrow[B,T,8,128] $
+$$K\rightarrow[B,T,8,128]$$
 
 #### V Projection
-$ V=X_nW_V $
+$$V=X_nW_V$$
 
-$ W_V\in\mathbb{R}^{4096\times1024} $
+$$W_V\in\mathbb{R}^{4096\times1024}$$
 
 所以：
 
-$ V\in\mathbb{R}^{B\times T\times1024} $
+$$V\in\mathbb{R}^{B\times T\times1024}$$
 
 然后 Reshape：
 
-$ V\rightarrow[B,T,8,128] $
+$$V\rightarrow[B,T,8,128]$$
 
 此时的形状：
 
@@ -338,9 +387,9 @@ Q 和 K 投影之后，还会经过 QK Norm 归一化。
 
 QK Norm 是对每个 Head 的特征进行处理，不改变 Head 数量和 Head Dimension。
 
-$ Q:[B,T,32,128] $
+$$Q:[B,T,32,128]$$
 
-$ K:[B,T,8,128] $
+$$K:[B,T,8,128]$$
 
 经过 QK Norm 后，形状不变。
 
@@ -353,7 +402,7 @@ ZGCM-1 使用 Partial RoPE，旋转维度比例为 0.33。
 
 RoPE 不改变 Tensor Shape：
 
-$ Q,K\rightarrow Q',K' $
+$$Q,K\rightarrow Q',K'$$
 
 V 不需要进行 RoPE。
 
@@ -370,7 +419,7 @@ V：[B,T,8,128]
 
 因为：
 
-$ 32/8=4 $
+$$32/8=4$$
 
 每 4 个 Query Head 共享一组 K、V。
 
@@ -384,23 +433,23 @@ V：[B, 8,T,128]
 
 以第一个 Query Head 为例：
 
-$ Q_1\in\mathbb{R}^{B\times T\times128} $
+$$Q_1\in\mathbb{R}^{B\times T\times128}$$
 
 对应的 K：
 
-$ K_1\in\mathbb{R}^{B\times T\times128} $
+$$K_1\in\mathbb{R}^{B\times T\times128}$$
 
 计算：
 
-$ S_1=Q_1K_1^T $
+$$S_1=Q_1K_1^T$$
 
 其中：
 
-$ [T,128]\times[128,T]=[T,T] $
+$$[T,128]\times[128,T]=[T,T]$$
 
 所以：
 
-$ S_1\in\mathbb{R}^{B\times T\times T} $
+$$S_1\in\mathbb{R}^{B\times T\times T}$$
 
 这一步非常重要。
 
@@ -410,13 +459,13 @@ $ S_1\in\mathbb{R}^{B\times T\times T} $
 
 例如 T=4：
 
-$ S=
+$$S=
 \begin{bmatrix}
 s_{11}&s_{12}&s_{13}&s_{14}\\
 s_{21}&s_{22}&s_{23}&s_{24}\\
 s_{31}&s_{32}&s_{33}&s_{34}\\
 s_{41}&s_{42}&s_{43}&s_{44}
-\end{bmatrix} $
+\end{bmatrix}$$
 
 每一行代表一个 Query Token 对所有 Key Token 的注意力分数。
 
@@ -427,39 +476,39 @@ s_{41}&s_{42}&s_{43}&s_{44}
 
 例如：
 
-$ S=
+$$S=
 \begin{bmatrix}
 s_{11}&-\infty&-\infty&-\infty\\
 s_{21}&s_{22}&-\infty&-\infty\\
 s_{31}&s_{32}&s_{33}&-\infty\\
 s_{41}&s_{42}&s_{43}&s_{44}
-\end{bmatrix} $
+\end{bmatrix}$$
 
 Softmax 后，未来位置的概率为 0。
 
 然后：
 
-$ A=Softmax\left(\frac{S}{\sqrt{128}}\right) $
+$$A=Softmax\left(\frac{S}{\sqrt{128}}\right)$$
 
 再乘以 V：
 
-$ O=AV $
+$$O=AV$$
 
 得到：
 
-$ [T,T]\times[T,128]=[T,128] $
+$$[T,T]\times[T,128]=[T,128]$$
 
 因此每个 Query Head 最终输出：
 
-$ O_i\in\mathbb{R}^{B\times T\times128} $
+$$O_i\in\mathbb{R}^{B\times T\times128}$$
 
 32 个 Head 分别计算，最后拼接：
 
-$ Concat(O_1,\ldots,O_{32}) $
+$$Concat(O_1,\ldots,O_{32})$$
 
 得到：
 
-$ \boxed{O\in\mathbb{R}^{B\times T\times4096}} $
+$$\boxed{O\in\mathbb{R}^{B\times T\times4096}}$$
 
 实际 GQA 实现不一定真的复制 K、V 四次，而是通过分组索引或优化的 Attention Kernel 直接完成共享计算。
 
@@ -493,7 +542,7 @@ SWA（Sliding Window Attention，滑动窗口注意力）并不是把整个输�
 
 假设输入序列长度为 T，每个位置都仍然会生成对应的 Query、Key 和 Value。逻辑上的 Attention Score 仍然可以表示为：
 
-$ S=\frac{QK^T}{\sqrt{d_k}},\qquad S\in\mathbb{R}^{T\times T} $
+$$S=\frac{QK^T}{\sqrt{d_k}},\qquad S\in\mathbb{R}^{T\times T}$$
 
 区别在于：普通 Causal Attention 只屏蔽当前位置之后的未来 Token；SWA 则进一步屏蔽距离当前 Query 太远的历史 Token。
 
@@ -521,9 +570,9 @@ Token:    A  B  C  D  E  F
 1. **因果约束**：不能关注当前位置之后的未来 Token。
 2. **窗口约束**：不能关注窗口范围之外的历史 Token。
 
-对应的 Mask（0 表示允许关注，$ -\infty $ 表示屏蔽）为：
+对应的 Mask（0 表示允许关注，$-\infty$ 表示屏蔽）为：
 
-$ M=
+$$M=
 \begin{bmatrix}
 0&-\infty&-\infty&-\infty&-\infty&-\infty\\
 0&0&-\infty&-\infty&-\infty&-\infty\\
@@ -531,25 +580,25 @@ $ M=
 -\infty&0&0&0&-\infty&-\infty\\
 -\infty&-\infty&0&0&0&-\infty\\
 -\infty&-\infty&-\infty&0&0&0
-\end{bmatrix} $
+\end{bmatrix}$$
 
 将 Mask 加到 Attention Score 上：
 
-$ S'=S+M $
+$$S'=S+M$$
 
 再进行 Softmax：
 
-$ A=Softmax(S') $
+$$A=Softmax(S')$$
 
-由于被屏蔽位置的分数为 $ -\infty $，Softmax 后这些位置的注意力权重为 0，因此不会参与当前 Query 的信息聚合。
+由于被屏蔽位置的分数为 $-\infty$，Softmax 后这些位置的注意力权重为 0，因此不会参与当前 Query 的信息聚合。
 
 **回到 ZGCM-1：窗口大小为 128**
 
-假设序列长度 $ T=1024 $：
+假设序列长度 $T=1024$：
 
 + Q 仍然包含 1024 个 Query Token。
 + K、V 仍然包含 1024 个位置。
-+ Attention Score 的逻辑形状仍然是 $ [1024,1024] $。
++ Attention Score 的逻辑形状仍然是 $[1024,1024]$。
 + 每个 Query 最多只能关注窗口内的 128 个 Key 位置。
 + 窗口之外的位置通过 Mask 屏蔽。
 
@@ -559,11 +608,11 @@ $ A=Softmax(S') $
 
 在 ZGCM-1 的窗口定义中，窗口总长度为 128，包含当前位置，而不是“当前位置之外再加 128 个历史 Token”。
 
-因此，位置 $ i $ 的允许范围为：
+因此，位置 $i$ 的允许范围为：
 
-$ \max(0,i-127)\leq j\leq i $
+$$\max(0,i-127)\leq j\leq i$$
 
-其中 $ i $ 是 Query 位置，$ j $ 是 Key 位置。也就是当前位置加上最多 127 个历史位置。
+其中 $i$ 是 Query 位置，$j$ 是 Key 位置。也就是当前位置加上最多 127 个历史位置。
 
 阅读其他模型或实现的代码时，仍应以 Attention Mask 或 Kernel 中的实际边界条件为准，因为不同实现对窗口参数的定义可能不同。
 
@@ -577,7 +626,7 @@ $ \max(0,i-127)\leq j\leq i $
 | 计算开销 | 随窗口大小增长，通常低于全局注意力 | 标准实现随序列长度平方增长 |
 
 
-在高效实现中，Sliding Window Attention Kernel 可以直接跳过窗口之外的 QK 计算，而不必先完整计算 $ T\times T $ 矩阵再将其 Mask。因此，SWA 不仅限制了信息访问范围，也有机会降低实际计算量和注意力矩阵的内存开销。
+在高效实现中，Sliding Window Attention Kernel 可以直接跳过窗口之外的 QK 计算，而不必先完整计算 $T\times T$ 矩阵再将其 Mask。因此，SWA 不仅限制了信息访问范围，也有机会降低实际计算量和注意力矩阵的内存开销。
 
 对于 ZGCM-1，SWA 负责局部信息交互，间隔插入的 Global Attention 层负责跨越整个历史序列的信息交互。两者结合，使模型兼顾局部计算效率和长距离上下文建模能力。
 
@@ -587,7 +636,7 @@ $ \max(0,i-127)\leq j\leq i $
 
 因此：
 
-$ [B,T,4096]\rightarrow Attention\rightarrow[B,T,4096] $
+$$[B,T,4096]\rightarrow Attention\rightarrow[B,T,4096]$$
 
 它不会将 T 个 Token 合并成一个 Token。
 
@@ -596,27 +645,27 @@ ZGCM-1 的 SWA 层还有额外的门控操作。
 
 从归一化后的输入计算：
 
-$ G=X_nW_g $
+$$G=X_nW_g$$
 
 其中：
 
-$ W_g\in\mathbb{R}^{4096\times4096} $
+$$W_g\in\mathbb{R}^{4096\times4096}$$
 
 得到：
 
-$ G\in\mathbb{R}^{B\times T\times4096} $
+$$G\in\mathbb{R}^{B\times T\times4096}$$
 
 然后：
 
-$ Gate=sigmoid(G) $
+$$Gate=sigmoid(G)$$
 
 最后：
 
-$ O'=O\odot Gate $
+$$O'=O\odot Gate$$
 
 这一步不会改变形状：
 
-$ [B,T,4096]\rightarrow[B,T,4096] $
+$$[B,T,4096]\rightarrow[B,T,4096]$$
 
 直观理解：
 
@@ -630,15 +679,15 @@ Attention 算出来的特征并不一定全部需要保留，Gate 学习对每�
 ### 5.6 第六步：Output Projection
 将 Attention 输出映射回 Hidden Size：
 
-$ Y=O'W_O $
+$$Y=O'W_O$$
 
 其中：
 
-$ W_O\in\mathbb{R}^{4096\times4096} $
+$$W_O\in\mathbb{R}^{4096\times4096}$$
 
 所以：
 
-$ Y\in\mathbb{R}^{B\times T\times4096} $
+$$Y\in\mathbb{R}^{B\times T\times4096}$$
 
 对于 Global 层，使用普通 Attention 输出进入 Output Projection。
 
@@ -647,15 +696,15 @@ $ Y\in\mathbb{R}^{B\times T\times4096} $
 ## 五、Residual Add
 刚才我们得到：
 
-$ Y\in\mathbb{R}^{B\times T\times4096} $
+$$Y\in\mathbb{R}^{B\times T\times4096}$$
 
 但是在整个 Attention 子模块开始之前，还有一个原始输入：
 
-$ X\in\mathbb{R}^{B\times T\times4096} $
+$$X\in\mathbb{R}^{B\times T\times4096}$$
 
 现在进行：
 
-$ \boxed{X_1=X+Y} $
+$$\boxed{X_1=X+Y}$$
 
 这就是残差连接。
 
@@ -681,11 +730,11 @@ Residual Add：
 
 由于两个 Tensor 形状完全相同：
 
-$ [B,T,4096]+[B,T,4096] $
+$$[B,T,4096]+[B,T,4096]$$
 
 得到：
 
-$ \boxed{X_1\in\mathbb{R}^{B\times T\times4096}} $
+$$\boxed{X_1\in\mathbb{R}^{B\times T\times4096}}$$
 
 为什么需要这样做？
 
@@ -699,7 +748,7 @@ X → Attention(X) → FFN(...)
 
 加入残差后：
 
-$ X_1=X+Attention(RMSNorm(X)) $
+$$X_1=X+Attention(RMSNorm(X))$$
 
 模型可以在保留原始信息的基础上，学习需要增加或修改的特征。
 
@@ -712,7 +761,7 @@ $ X_1=X+Attention(RMSNorm(X)) $
 
 得到：
 
-$ X_1\in\mathbb{R}^{B\times T\times4096} $
+$$X_1\in\mathbb{R}^{B\times T\times4096}$$
 
 接下来进入 FFN。
 
@@ -723,64 +772,64 @@ $ X_1\in\mathbb{R}^{B\times T\times4096} $
 也就是说，FFN 不需要再次计算 Token 之间的关系。
 
 ### 7.1 FFN 前的 RMSNorm
-$ X_{1n}=RMSNorm_2(X_1) $
+$$X_{1n}=RMSNorm_2(X_1)$$
 
 得到：
 
-$ X_{1n}\in\mathbb{R}^{B\times T\times4096} $
+$$X_{1n}\in\mathbb{R}^{B\times T\times4096}$$
 
 注意，这是另一套独立的 RMSNorm 参数，与 Attention 前面的 RMSNorm 不共享。
 
 ### 7.2 Gate Projection
 ZGCM-1：
 
-$ D_{ff}=11008 $
+$$D_{ff}=11008$$
 
 Gate Projection：
 
-$ G=X_{1n}W_g^{ffn} $
+$$G=X_{1n}W_g^{ffn}$$
 
 其中：
 
-$ W_g^{ffn}\in\mathbb{R}^{4096\times11008} $
+$$W_g^{ffn}\in\mathbb{R}^{4096\times11008}$$
 
 因此：
 
-$ G\in\mathbb{R}^{B\times T\times11008} $
+$$G\in\mathbb{R}^{B\times T\times11008}$$
 
 ### 7.3 Up Projection
-$ U=X_{1n}W_u^{ffn} $
+$$U=X_{1n}W_u^{ffn}$$
 
 其中：
 
-$ W_u^{ffn}\in\mathbb{R}^{4096\times11008} $
+$$W_u^{ffn}\in\mathbb{R}^{4096\times11008}$$
 
 得到：
 
-$ U\in\mathbb{R}^{B\times T\times11008} $
+$$U\in\mathbb{R}^{B\times T\times11008}$$
 
 现在两个分支都是 11008 维。
 
 ### 7.4 SiLU 激活与逐元素相乘
 首先：
 
-$ G'=SiLU(G) $
+$$G'=SiLU(G)$$
 
 其中：
 
-$ SiLU(x)=x\cdot sigmoid(x) $
+$$SiLU(x)=x\cdot sigmoid(x)$$
 
 然后：
 
-$ H=G'\odot U $
+$$H=G'\odot U$$
 
 也就是：
 
-$ H=SiLU(G)\odot U $
+$$H=SiLU(G)\odot U$$
 
 最终：
 
-$ H\in\mathbb{R}^{B\times T\times11008} $
+$$H\in\mathbb{R}^{B\times T\times11008}$$
 
 这里发生的是逐元素相乘，而不是矩阵乘法。
 
@@ -811,19 +860,35 @@ SiLU(Gate)：
 
 因此需要 Down Projection：
 
-$ F=HW_d^{ffn} $
+$$F=HW_d^{ffn}$$
 
 其中：
 
-$ W_d^{ffn}\in\mathbb{R}^{11008\times4096} $
+$$W_d^{ffn}\in\mathbb{R}^{11008\times4096}$$
 
 得到：
 
-$ \boxed{F\in\mathbb{R}^{B\times T\times4096}} $
+$$\boxed{F\in\mathbb{R}^{B\times T\times4096}}$$
 
 SwiGLU FFN 的完整维度变化：
 
-![SwiGLU FFN 维度变化图](https://cdn.nlark.com/yuque/__mermaid_v3/ff70dfef8dc827dbe7486cf7a4969f78.svg)
+SwiGLU FFN 的完整维度变化：
+
+```mermaid
+flowchart TB
+    X["输入 X₁<br/>[B,T,4096]"] --> N["RMSNorm 2"]
+    N --> G["Gate Projection<br/>Wg：4096 → 11008"]
+    N --> U["Up Projection<br/>Wu：4096 → 11008"]
+    G --> S["SiLU 激活"]
+    S --> M["逐元素相乘<br/>H = SiLU(G) ⊙ U"]
+    U --> M
+    M --> H["中间特征 H<br/>[B,T,11008]"]
+    H --> D["Down Projection<br/>Wd：11008 → 4096"]
+    D --> F["FFN 输出 F<br/>[B,T,4096]"]
+    F --> R["与输入 X₁ 做 Residual Add"]
+    X --> R
+    R --> O["Block 输出 X₂<br/>[B,T,4096]"]
+```
 
 ---
 
@@ -832,27 +897,27 @@ SwiGLU FFN 的完整维度变化：
 
 FFN 输入前的特征：
 
-$ X_1\in\mathbb{R}^{B\times T\times4096} $
+$$X_1\in\mathbb{R}^{B\times T\times4096}$$
 
 FFN 输出：
 
-$ F\in\mathbb{R}^{B\times T\times4096} $
+$$F\in\mathbb{R}^{B\times T\times4096}$$
 
 进行第二次残差相加：
 
-$ \boxed{X_2=X_1+F} $
+$$\boxed{X_2=X_1+F}$$
 
 得到：
 
-$ \boxed{X_2\in\mathbb{R}^{B\times T\times4096}} $
+$$\boxed{X_2\in\mathbb{R}^{B\times T\times4096}}$$
 
 这就是一个完整 Transformer Block 的最终输出。
 
 完整计算公式：
 
-$ X_1=X+Attention(RMSNorm_1(X)) $
+$$X_1=X+Attention(RMSNorm_1(X))$$
 
-$ X_2=X_1+FFN(RMSNorm_2(X_1)) $
+$$X_2=X_1+FFN(RMSNorm_2(X_1))$$
 
 其中 Attention 和 FFN 内部还有各自的投影、激活、注意力和门控操作。
 
@@ -863,25 +928,25 @@ $ X_2=X_1+FFN(RMSNorm_2(X_1)) $
 ## 八、重复 32 个 Transformer Block
 现在我们已经得到第一个 Block 的输出：
 
-$ X_1\in\mathbb{R}^{B\times T\times4096} $
+$$X_1\in\mathbb{R}^{B\times T\times4096}$$
 
 它会作为第二个 Block 的输入。
 
 第二层：
 
-$ X_2=TransformerBlock_2(X_1) $
+$$X_2=TransformerBlock_2(X_1)$$
 
 第三层：
 
-$ X_3=TransformerBlock_3(X_2) $
+$$X_3=TransformerBlock_3(X_2)$$
 
 依此类推：
 
-$ X_{32}=TransformerBlock_{32}(X_{31}) $
+$$X_{32}=TransformerBlock_{32}(X_{31})$$
 
 最终：
 
-$ \boxed{X_{32}\in\mathbb{R}^{B\times T\times4096}} $
+$$\boxed{X_{32}\in\mathbb{R}^{B\times T\times4096}}$$
 
 每一层的 Hidden Size 都是 4096。
 
@@ -892,19 +957,19 @@ $ \boxed{X_{32}\in\mathbb{R}^{B\times T\times4096}} $
 ### 9.1 32 层到底改变了什么？
 假设某个 Token 的初始 Embedding 是：
 
-$ h_0\in\mathbb{R}^{4096} $
+$$h_0\in\mathbb{R}^{4096}$$
 
 经过不同层：
 
-$ h_1=Block_1(h_0) $
+$$h_1=Block_1(h_0)$$
 
-$ h_2=Block_2(h_1) $
+$$h_2=Block_2(h_1)$$
 
-$ h_3=Block_3(h_2) $
+$$h_3=Block_3(h_2)$$
 
 依此类推：
 
-$ h_{32}=Block_{32}(h_{31}) $
+$$h_{32}=Block_{32}(h_{31})$$
 
 维度始终是 4096。
 
@@ -926,11 +991,11 @@ $ h_{32}=Block_{32}(h_{31}) $
 
 例如：
 
-$ W_Q\in\mathbb{R}^{4096\times4096} $
+$$W_Q\in\mathbb{R}^{4096\times4096}$$
 
-$ W_O\in\mathbb{R}^{4096\times4096} $
+$$W_O\in\mathbb{R}^{4096\times4096}$$
 
-$ W_{down}\in\mathbb{R}^{11008\times4096} $
+$$W_{down}\in\mathbb{R}^{11008\times4096}$$
 
 所以 Attention 和 FFN 最终都回到 4096 维。
 
@@ -945,18 +1010,18 @@ $ W_{down}\in\mathbb{R}^{11008\times4096} $
 
 得到：
 
-$ H_{final}\in\mathbb{R}^{B\times T\times4096} $
+$$H_{final}\in\mathbb{R}^{B\times T\times4096}$$
 
 接下来进行最终预测。
 
 ### 10.1 Final RMSNorm
 首先：
 
-$ H_{norm}=RMSNorm_{final}(H_{final}) $
+$$H_{norm}=RMSNorm_{final}(H_{final})$$
 
 得到：
 
-$ H_{norm}\in\mathbb{R}^{B\times T\times4096} $
+$$H_{norm}\in\mathbb{R}^{B\times T\times4096}$$
 
 依然不改变 Tensor Shape。
 
@@ -969,19 +1034,19 @@ $ H_{norm}\in\mathbb{R}^{B\times T\times4096} $
 
 因此需要一个 Linear 层：
 
-$ Logits=H_{norm}W_{LM} $
+$$Logits=H_{norm}W_{LM}$$
 
 其中：
 
-$ W_{LM}\in\mathbb{R}^{4096\times154880} $
+$$W_{LM}\in\mathbb{R}^{4096\times154880}$$
 
 所以：
 
-$ [B,T,4096]\times[4096,154880] $
+$$[B,T,4096]\times[4096,154880]$$
 
 得到：
 
-$ \boxed{Logits\in\mathbb{R}^{B\times T\times154880}} $
+$$\boxed{Logits\in\mathbb{R}^{B\times T\times154880}}$$
 
 为什么是 154880？
 
@@ -1005,13 +1070,13 @@ Token 154879 → 0.45
 ### 10.3 Softmax
 接下来：
 
-$ P=Softmax(Logits) $
+$$P=Softmax(Logits)$$
 
 Softmax 沿着词表维度进行计算。
 
 得到：
 
-$ P\in\mathbb{R}^{B\times T\times154880} $
+$$P\in\mathbb{R}^{B\times T\times154880}$$
 
 每个位置的概率之和为 1。
 
@@ -1078,9 +1143,9 @@ P(Token 2) = 0.01
 
 数学表示：
 
-$ Input=[A,B,C,D] $
+$$Input=[A,B,C,D]$$
 
-$ Labels=[B,C,D,E] $
+$$Labels=[B,C,D,E]$$
 
 实际训练代码中通常会通过 Shift 操作完成这个过程。
 
@@ -1089,23 +1154,23 @@ $ Labels=[B,C,D,E] $
 ### 11.2 模型输出什么？
 经过前面的网络：
 
-$ Input:[B,T] $
+$$Input:[B,T]$$
 
-$ Transformer:[B,T,4096] $
+$$Transformer:[B,T,4096]$$
 
-$ LMHead:[B,T,154880] $
+$$LMHead:[B,T,154880]$$
 
 因此：
 
-$ Logits\in\mathbb{R}^{B\times T\times154880} $
+$$Logits\in\mathbb{R}^{B\times T\times154880}$$
 
 假设：
 
-$ B=2,\qquad T=4 $
+$$B=2,\qquad T=4$$
 
 那么：
 
-$ Logits\in\mathbb{R}^{2\times4\times154880} $
+$$Logits\in\mathbb{R}^{2\times4\times154880}$$
 
 这表示：
 
@@ -1132,14 +1197,14 @@ Token D：0.1
 
 交叉熵：
 
-$ Loss=-\log P(y_{true}) $
+$$Loss=-\log P(y_{true})$$
 
 对于整个 Batch：
 
-$ Loss=
+$$Loss=
 -\frac{1}{N}
 \sum_{b,t}
-\log P(y_{b,t}\mid x_{b,\leq t}) $
+\log P(y_{b,t}\mid x_{b,\leq t})$$
 
 这里 N 是有效预测位置的数量，Padding 等无效位置不参与计算。
 
@@ -1148,7 +1213,21 @@ $ Loss=
 ### 11.4 Loss 计算完之后发生什么？
 模型执行：
 
-![训练与推理数据流图](https://cdn.nlark.com/yuque/__mermaid_v3/c92f458387061612bcbdee47e526da04.svg)
+模型执行：
+
+```mermaid
+flowchart TB
+    A["输入 Token IDs"] --> B["模型前向传播"]
+    B --> C["Logits<br/>[B,T,154880]"]
+    C --> D["与目标序列错位对齐<br/>预测下一个 Token"]
+    D --> E["过滤 Padding 等无效位置<br/>应用 Loss Mask"]
+    E --> F["Cross Entropy Loss"]
+    F --> G["loss.backward()<br/>反向传播"]
+    G --> H["计算各参数梯度"]
+    H --> I["optimizer.step()<br/>更新模型参数"]
+    I --> J["optimizer.zero_grad()<br/>清空梯度"]
+    J --> K["进入下一训练批次"]
+```
 
 例如：
 
@@ -1184,7 +1263,7 @@ optimizer.zero_grad()
 
 例如：
 
-$ W_Q^{new}=W_Q^{old}-\eta\nabla W_Q $
+$$W_Q^{new}=W_Q^{old}-\eta\nabla W_Q$$
 
 这里的 eta 是学习率。
 
@@ -1225,31 +1304,31 @@ $ W_Q^{new}=W_Q^{old}-\eta\nabla W_Q $
 #### 原因一：Linear 只改变最后一个维度
 例如：
 
-$ [B,T,4096]\times[4096,11008] $
+$$[B,T,4096]\times[4096,11008]$$
 
 得到：
 
-$ [B,T,11008] $
+$$[B,T,11008]$$
 
 Batch 和 Sequence 不变。
 
 #### 原因二：Attention 交换信息，但不减少 Token 数量
 Attention 虽然计算了：
 
-$ QK^T\rightarrow[B,H,T,T] $
+$$QK^T\rightarrow[B,H,T,T]$$
 
 但是经过 Softmax 和 V 加权之后，每一个 Query Token 仍然产生自己的输出。
 
 所以：
 
-$ [B,H,T,128]\rightarrow[B,T,4096] $
+$$[B,H,T,128]\rightarrow[B,T,4096]$$
 
 不会把 T 个 Token 合并成一个。
 
 #### 原因三：Residual 要求输入和输出形状一致
 残差：
 
-$ Y=X+F(X) $
+$$Y=X+F(X)$$
 
 两边必须具有相同的 Tensor Shape。
 
@@ -1324,13 +1403,13 @@ Vocabulary Size = 154880
 
 每层都有不同的可训练参数：
 
-$ X_1=Block_1(X_0) $
+$$X_1=Block_1(X_0)$$
 
-$ X_2=Block_2(X_1) $
+$$X_2=Block_2(X_1)$$
 
-$ \cdots $
+$$\cdots$$
 
-$ X_{32}=Block_{32}(X_{31}) $
+$$X_{32}=Block_{32}(X_{31})$$
 
 每一层都能学习不同的特征变换。
 
@@ -1393,7 +1472,7 @@ logits.shape
 
 这样就能把理论上的：
 
-$ [B,T]\rightarrow[B,T,4096] $
+$$[B,T]\rightarrow[B,T,4096]$$
 
 和实际运行时 GPU 中的 Tensor 对应起来。
 
@@ -1431,9 +1510,9 @@ $ [B,T]\rightarrow[B,T,4096] $
 
 其中：
 
-$ Hidden\ Size=32\times128=4096 $
+$$Hidden\ Size=32\times128=4096$$
 
-$ KV\ Dimension=8\times128=1024 $
+$$KV\ Dimension=8\times128=1024$$
 
 后面所有参数量都以这些配置为基础计算。
 
@@ -1442,44 +1521,44 @@ Embedding 的作用是将 Token ID 映射为 Hidden Size 维度的向量。
 
 ZGCM-1：
 
-$ W_{emb}\in\mathbb{R}^{154880\times4096} $
+$$W_{emb}\in\mathbb{R}^{154880\times4096}$$
 
 因此：
 
-$ \begin{aligned}
+$$\begin{aligned}
 P_{emb}
 &=154880\times4096\\
 &=\boxed{634,388,480}
-\end{aligned} $
+\end{aligned}$$
 
 约为：
 
-$ P_{emb}\approx0.6344B $
+$$P_{emb}\approx0.6344B$$
 
 这里有 154880 行，每行 4096 个可学习参数。
 
 ### 15.3 LM Head 参数量
 Transformer 最终输出：
 
-$ H_{final}\in\mathbb{R}^{B\times T\times4096} $
+$$H_{final}\in\mathbb{R}^{B\times T\times4096}$$
 
 LM Head 负责将 4096 维 Hidden State 映射到词表维度。
 
 权重矩阵：
 
-$ W_{LM}\in\mathbb{R}^{4096\times154880} $
+$$W_{LM}\in\mathbb{R}^{4096\times154880}$$
 
 因此：
 
-$ \begin{aligned}
+$$\begin{aligned}
 P_{LM}
 &=4096\times154880\\
 &=\boxed{634,388,480}
-\end{aligned} $
+\end{aligned}$$
 
 约为：
 
-$ P_{LM}\approx0.6344B $
+$$P_{LM}\approx0.6344B$$
 
 这里有一个值得注意的地方：
 
@@ -1495,12 +1574,12 @@ tie_word_embeddings = False
 
 两者合计：
 
-$ \begin{aligned}
+$$\begin{aligned}
 P_{emb+LM}
 &=634,388,480\\
 &\quad+634,388,480\\
 &=\boxed{1,268,776,960}
-\end{aligned} $
+\end{aligned}$$
 
 约为 1.269B。
 
@@ -1526,98 +1605,98 @@ Hidden Size = 4096
 #### 15.4.1 Q Projection
 输入维度：
 
-$ D_{in}=4096 $
+$$D_{in}=4096$$
 
 输出维度：
 
-$ D_{out}=32\times128=4096 $
+$$D_{out}=32\times128=4096$$
 
 权重矩阵：
 
-$ W_Q\in\mathbb{R}^{4096\times4096} $
+$$W_Q\in\mathbb{R}^{4096\times4096}$$
 
 参数量：
 
-$ \begin{aligned}
+$$\begin{aligned}
 P_Q
 &=4096\times4096\\
 &=\boxed{16,777,216}
-\end{aligned} $
+\end{aligned}$$
 
 #### 15.4.2 K Projection
 K 只有 8 个 KV Head：
 
-$ D_{out}=8\times128=1024 $
+$$D_{out}=8\times128=1024$$
 
 权重矩阵：
 
-$ W_K\in\mathbb{R}^{4096\times1024} $
+$$W_K\in\mathbb{R}^{4096\times1024}$$
 
 参数量：
 
-$ \begin{aligned}
+$$\begin{aligned}
 P_K
 &=4096\times1024\\
 &=\boxed{4,194,304}
-\end{aligned} $
+\end{aligned}$$
 
 #### 15.4.3 V Projection
 V 和 K 的维度相同：
 
-$ W_V\in\mathbb{R}^{4096\times1024} $
+$$W_V\in\mathbb{R}^{4096\times1024}$$
 
 参数量：
 
-$ \begin{aligned}
+$$\begin{aligned}
 P_V
 &=4096\times1024\\
 &=\boxed{4,194,304}
-\end{aligned} $
+\end{aligned}$$
 
 #### 15.4.4 Output Projection
 Attention 输出经过 32 个 Query Head 拼接：
 
-$ 32\times128=4096 $
+$$32\times128=4096$$
 
 因此需要映射回 Hidden Size：
 
-$ W_O\in\mathbb{R}^{4096\times4096} $
+$$W_O\in\mathbb{R}^{4096\times4096}$$
 
 参数量：
 
-$ \begin{aligned}
+$$\begin{aligned}
 P_O
 &=4096\times4096\\
 &=\boxed{16,777,216}
-\end{aligned} $
+\end{aligned}$$
 
 #### 15.4.5 单层 Attention 总参数量
 将四个矩阵相加：
 
-$ P_{attn}=P_Q+P_K+P_V+P_O $
+$$P_{attn}=P_Q+P_K+P_V+P_O$$
 
 代入：
 
-$ \begin{aligned}
+$$\begin{aligned}
 P_{attn}
 &=16,777,216\\
 &\quad+4,194,304\\
 &\quad+4,194,304\\
 &\quad+16,777,216\\
 &=\boxed{41,943,040}
-\end{aligned} $
+\end{aligned}$$
 
 也就是：
 
-$ P_{attn}\approx41.94M $
+$$P_{attn}\approx41.94M$$
 
 32 层全部使用相同的基础 GQA 投影结构：
 
-$ \begin{aligned}
+$$\begin{aligned}
 P_{attn,total}
 &=32\times41,943,040\\
 &=\boxed{1,342,177,280}
-\end{aligned} $
+\end{aligned}$$
 
 约为 1.342B。
 
@@ -1635,27 +1714,27 @@ Gate 的作用是对 Attention 输出进行逐元素调节。
 
 计算公式：
 
-$ Gate=\sigma(XW_g) $
+$$Gate=\sigma(XW_g)$$
 
 其中：
 
-$ W_g\in\mathbb{R}^{4096\times4096} $
+$$W_g\in\mathbb{R}^{4096\times4096}$$
 
 因此，单个 SWA 层的 Gate Projection 参数量：
 
-$ \begin{aligned}
+$$\begin{aligned}
 P_{gate}
 &=4096\times4096\\
 &=\boxed{16,777,216}
-\end{aligned} $
+\end{aligned}$$
 
 27 层合计：
 
-$ \begin{aligned}
+$$\begin{aligned}
 P_{gate,total}
 &=27\times16,777,216\\
 &=\boxed{452,984,832}
-\end{aligned} $
+\end{aligned}$$
 
 约为 0.453B。
 
@@ -1673,9 +1752,9 @@ P_{gate,total}
 
 因此：
 
-$ \boxed{
+$$\boxed{
 P_{Attention+Gate}=1,795,162,112
-} $
+}$$
 
 约为 1.795B。
 
@@ -1698,74 +1777,74 @@ SwiGLU 包含三个 Linear 矩阵：
 #### 15.6.1 Gate Projection
 输入：
 
-$ D_{in}=4096 $
+$$D_{in}=4096$$
 
 输出：
 
-$ D_{out}=11008 $
+$$D_{out}=11008$$
 
 权重矩阵：
 
-$ W_{gate}\in\mathbb{R}^{4096\times11008} $
+$$W_{gate}\in\mathbb{R}^{4096\times11008}$$
 
 参数量：
 
-$ \begin{aligned}
+$$\begin{aligned}
 P_{gate}^{ffn}
 &=4096\times11008\\
 &=\boxed{45,088,768}
-\end{aligned} $
+\end{aligned}$$
 
 #### 15.6.2 Up Projection
 Up Projection 的输入输出维度相同：
 
-$ W_{up}\in\mathbb{R}^{4096\times11008} $
+$$W_{up}\in\mathbb{R}^{4096\times11008}$$
 
 参数量：
 
-$ \begin{aligned}
+$$\begin{aligned}
 P_{up}
 &=4096\times11008\\
 &=\boxed{45,088,768}
-\end{aligned} $
+\end{aligned}$$
 
 #### 15.6.3 Down Projection
 将 11008 维映射回 4096 维：
 
-$ W_{down}\in\mathbb{R}^{11008\times4096} $
+$$W_{down}\in\mathbb{R}^{11008\times4096}$$
 
 参数量：
 
-$ \begin{aligned}
+$$\begin{aligned}
 P_{down}
 &=11008\times4096\\
 &=\boxed{45,088,768}
-\end{aligned} $
+\end{aligned}$$
 
 #### 15.6.4 单层 FFN 总参数量
-$ P_{FFN}=P_{gate}^{ffn}+P_{up}+P_{down} $
+$$P_{FFN}=P_{gate}^{ffn}+P_{up}+P_{down}$$
 
 代入：
 
-$ \begin{aligned}
+$$\begin{aligned}
 P_{FFN}
 &=45,088,768\\
 &\quad+45,088,768\\
 &\quad+45,088,768\\
 &=\boxed{135,266,304}
-\end{aligned} $
+\end{aligned}$$
 
 约为：
 
-$ P_{FFN}\approx135.27M $
+$$P_{FFN}\approx135.27M$$
 
 32 层合计：
 
-$ \begin{aligned}
+$$\begin{aligned}
 P_{FFN,total}
 &=32\times135,266,304\\
 &=\boxed{4,328,521,728}
-\end{aligned} $
+\end{aligned}$$
 
 约为 4.329B。
 
@@ -1780,11 +1859,11 @@ ZGCM-1 使用 RMSNorm。
 
 RMSNorm 的计算本身不需要大量参数，但包含一个可学习的缩放向量：
 
-$ \gamma\in\mathbb{R}^{D} $
+$$\gamma\in\mathbb{R}^{D}$$
 
 因此：
 
-$ P_{RMSNorm}=D $
+$$P_{RMSNorm}=D$$
 
 #### 15.7.1 每个 Transformer Block 的 RMSNorm
 每个 Block 包含两个 RMSNorm：
@@ -1796,50 +1875,50 @@ $ P_{RMSNorm}=D $
 
 因此单层：
 
-$ P_{block,norm}=2\times4096=8192 $
+$$P_{block,norm}=2\times4096=8192$$
 
 32 层：
 
-$ \begin{aligned}
+$$\begin{aligned}
 P_{block,norm,total}
 &=32\times8192\\
 &=\boxed{262,144}
-\end{aligned} $
+\end{aligned}$$
 
 #### 15.7.2 QK Norm
 ZGCM-1 还对 Q 和 K 使用 RMSNorm。
 
 每个 Head 的维度为：
 
-$ D_{head}=128 $
+$$D_{head}=128$$
 
 Q Norm 和 K Norm 各有一个 128 维可学习缩放向量。
 
 因此单层：
 
-$ P_{QKNorm}=2\times128=256 $
+$$P_{QKNorm}=2\times128=256$$
 
 32 层：
 
-$ \begin{aligned}
+$$\begin{aligned}
 P_{QKNorm,total}
 &=32\times256\\
 &=\boxed{8,192}
-\end{aligned} $
+\end{aligned}$$
 
 注意：这里的 QK Norm 参数在所有 32 层中都存在，而不是只在 SWA 层中存在。
 
 #### 15.7.3 Final RMSNorm
 32 层 Transformer 完成后，还有一个最终 RMSNorm：
 
-$ P_{final,norm}=4096 $
+$$P_{final,norm}=4096$$
 
 #### 15.7.4 Norm 总参数量
-$ \begin{aligned}
+$$\begin{aligned}
 P_{norm,total}
 &=262,144+8,192+4,096\\
 &=\boxed{274,432}
-\end{aligned} $
+\end{aligned}$$
 
 归一化层的参数量相对于其他模块非常小。
 
@@ -1859,16 +1938,16 @@ P_{norm,total}
 + SwiGLU FFN。
 
 #### SWA Block
-$ \begin{aligned}
+$$\begin{aligned}
 P_{SWA}
 &=P_{QKVO}+P_{Gate}\\
 &\quad+P_{FFN}+P_{block,norm}\\
 &\quad+P_{QKNorm}
-\end{aligned} $
+\end{aligned}$$
 
 代入：
 
-$ \begin{aligned}
+$$\begin{aligned}
 P_{SWA}
 &=41,943,040\\
 &\quad+16,777,216\\
@@ -1876,19 +1955,19 @@ P_{SWA}
 &\quad+8,192\\
 &\quad+256\\
 &=\boxed{193,995,008}
-\end{aligned} $
+\end{aligned}$$
 
 #### Global Block
 Global Block 没有额外 Gate：
 
-$ \begin{aligned}
+$$\begin{aligned}
 P_{Global}
 &=41,943,040\\
 &\quad+135,266,304\\
 &\quad+8,192\\
 &\quad+256\\
 &=\boxed{177,217,792}
-\end{aligned} $
+\end{aligned}$$
 
 #### 32 层 Transformer 总参数量
 ZGCM-1：
@@ -1900,12 +1979,12 @@ Global Block = 5 层
 
 因此：
 
-$ \begin{aligned}
+$$\begin{aligned}
 P_{Transformer}
 &=27\times193,995,008\\
 &\quad+5\times177,217,792\\
 &=\boxed{6,123,954,176}
-\end{aligned} $
+\end{aligned}$$
 
 约为 6.124B。
 
@@ -1925,16 +2004,16 @@ P_{Transformer}
 
 最终：
 
-$ \begin{aligned}
+$$\begin{aligned}
 P_{total}
 &=P_{Embedding}+P_{LM}\\
 &\quad+P_{Attention}+P_{Gate}\\
 &\quad+P_{FFN}+P_{Norm}
-\end{aligned} $
+\end{aligned}$$
 
 代入：
 
-$ \begin{aligned}
+$$\begin{aligned}
 P_{total}
 &=634,388,480\\
 &+634,388,480\\
@@ -1942,15 +2021,15 @@ P_{total}
 &+452,984,832\\
 &+4,328,521,728\\
 &+274,432
-\end{aligned} $
+\end{aligned}$$
 
 得到：
 
-$ \boxed{P_{total}=7,392,735,232} $
+$$\boxed{P_{total}=7,392,735,232}$$
 
 换算：
 
-$ \boxed{P_{total}\approx7.393B\approx7.39B} $
+$$\boxed{P_{total}\approx7.393B\approx7.39B}$$
 
 这与 ZGCM-1 官方公布的 7.39B 参数量一致。
 
@@ -1981,7 +2060,7 @@ $ \boxed{P_{total}\approx7.393B\approx7.39B} $
 
 **第一：FFN 占据了最大的参数比例。**
 
-$ \frac{P_{FFN}}{P_{total}}\approx58.55\% $
+$$\frac{P_{FFN}}{P_{total}}\approx58.55\%$$
 
 也就是说，超过一半的参数都集中在 FFN 中。
 
@@ -1989,8 +2068,8 @@ $ \frac{P_{FFN}}{P_{total}}\approx58.55\% $
 
 **第二：Embedding 和 LM Head 占据了约 17.16%。**
 
-$ \frac{P_{Embedding}+P_{LM}}{P_{total}}
-\approx17.16\% $
+$$\frac{P_{Embedding}+P_{LM}}{P_{total}}
+\approx17.16\%$$
 
 词表越大，Embedding 和 LM Head 的参数量通常也越大。
 
@@ -1999,7 +2078,7 @@ $ \frac{P_{Embedding}+P_{LM}}{P_{total}}
 ZGCM-1 还增加了 27 个 SWA 层的 Output Gate。
 
 因此：
-$ P_{Attention+Gate}\approx1.795B $
+$$P_{Attention+Gate}\approx1.795B$$
 
 约占模型总参数量的 24.28%。
 
@@ -2020,19 +2099,19 @@ SWA 的核心作用是限制每个 Query 可以访问的历史 Token 数量，�
 
 因此：
 
-$ \begin{aligned}
+$$\begin{aligned}
 Memory
 &=7,392,735,232\times2\\
 &=14,785,470,464\ Bytes
-\end{aligned} $
+\end{aligned}$$
 
 换算：
 
-$ Memory\approx14.79GB $
+$$Memory\approx14.79GB$$
 
 或者：
 
-$ Memory\approx13.77GiB $
+$$Memory\approx13.77GiB$$
 
 这是仅计算模型权重的理论存储量，不包括 KV Cache、运行时工作区、激活值以及其他显存开销。
 
@@ -2069,11 +2148,11 @@ Head Dimension = 128
 
 经过 QKV 投影：
 
-$ Q:[B,T,32,128] $
+$$Q:[B,T,32,128]$$
 
-$ K:[B,T,8,128] $
+$$K:[B,T,8,128]$$
 
-$ V:[B,T,8,128] $
+$$V:[B,T,8,128]$$
 
 GQA 已经通过减少 KV Heads 的数量，大幅降低了 KV Cache 的显存占用。
 
@@ -2106,8 +2185,8 @@ GQA 已经通过减少 KV Heads 的数量，大幅降低了 KV Cache 的显存�
 
 其显存计算公式：
 
-$ M_{KV}=B\times T\times L\times H_{KV}
-\times D_h\times2\times Bytes $
+$$M_{KV}=B\times T\times L\times H_{KV}
+\times D_h\times2\times Bytes$$
 
 其中：
 
@@ -2135,12 +2214,12 @@ Head Dimension  = 128
 
 那么：
 
-$ M_{KV}=1\times128000\times60
-\times8\times128\times2\times2 $
+$$M_{KV}=1\times128000\times60
+\times8\times128\times2\times2$$
 
 约为：
 
-$ \boxed{M_{KV}=29.30GiB} $
+$$\boxed{M_{KV}=29.30GiB}$$
 
 这还只是 KV Cache，没有计算模型权重和其他运行时显存。
 
@@ -2157,7 +2236,7 @@ Head Dim    = 128
 
 每个 Token 仍然需要保存：
 
-$ K+V=2\times8\times128 $
+$$K+V=2\times8\times128$$
 
 即 2048 个数值。
 
@@ -2262,7 +2341,7 @@ KV 压缩维度：512
 
 因此，每个 Attention Head 的 Q、K 维度：
 
-$ D_Q=D_K=128+64=192 $
+$$D_Q=D_K=128+64=192$$
 
 而 V 仍然是 128 维。
 
@@ -2277,11 +2356,11 @@ Hidden Size     = 5120
 
 输入：
 
-$ X\in\mathbb{R}^{B\times T\times5120} $
+$$X\in\mathbb{R}^{B\times T\times5120}$$
 
 即：
 
-$ X\in\mathbb{R}^{2\times4\times5120} $
+$$X\in\mathbb{R}^{2\times4\times5120}$$
 
 和之前学习 GQA 一样，输入是经过 RMSNorm 的 Hidden States，而不是 Token ID。
 
@@ -2292,7 +2371,7 @@ MLA 与 GQA 最大的区别是：它不会直接将输入投影成完整的 K、
 
 传统 Attention：
 
-$ Q=XW_Q $
+$$Q=XW_Q$$
 
 直接将 5120 维映射到全部 Query Head 的维度。
 
@@ -2300,15 +2379,15 @@ MLA 则分为两步。
 
 **第一步：Down Projection**
 
-$ C^Q=XW^{DQ} $
+$$C^Q=XW^{DQ}$$
 
 其中：
 
-$ W^{DQ}\in\mathbb{R}^{5120\times1536} $
+$$W^{DQ}\in\mathbb{R}^{5120\times1536}$$
 
 得到：
 
-$ \boxed{C^Q\in\mathbb{R}^{B\times T\times1536}} $
+$$\boxed{C^Q\in\mathbb{R}^{B\times T\times1536}}$$
 
 每个 Token 原本是 5120 维，先压缩到 1536 维。
 
@@ -2318,17 +2397,17 @@ $ \boxed{C^Q\in\mathbb{R}^{B\times T\times1536}} $
 
 其中内容分支：
 
-$ Q^C=C^QW^{UQ_C} $
+$$Q^C=C^QW^{UQ_C}$$
 
-$ W^{UQ_C}\in\mathbb{R}^{1536\times16384} $
+$$W^{UQ_C}\in\mathbb{R}^{1536\times16384}$$
 
 得到：
 
-$ Q^C\in\mathbb{R}^{B\times T\times16384} $
+$$Q^C\in\mathbb{R}^{B\times T\times16384}$$
 
 Reshape：
 
-$ Q^C\rightarrow[B,T,128,128] $
+$$Q^C\rightarrow[B,T,128,128]$$
 
 这部分就是每个 Head 的 128 维内容 Query。
 
@@ -2408,49 +2487,49 @@ KV Latent
 
 **第一步：KV Down Projection**
 
-$ C^{KV}=XW^{DKV} $
+$$C^{KV}=XW^{DKV}$$
 
 其中：
 
-$ W^{DKV}\in\mathbb{R}^{5120\times512} $
+$$W^{DKV}\in\mathbb{R}^{5120\times512}$$
 
 得到：
 
-$ \boxed{C^{KV}\in\mathbb{R}^{B\times T\times512}} $
+$$\boxed{C^{KV}\in\mathbb{R}^{B\times T\times512}}$$
 
 每个 Token 的 Key 和 Value 信息，被共同压缩到了一个 512 维的潜在向量中。
 
 **第二步：恢复 Key**
 
-$ K^C=C^{KV}W^{UK} $
+$$K^C=C^{KV}W^{UK}$$
 
 其中：
 
-$ W^{UK}\in\mathbb{R}^{512\times16384} $
+$$W^{UK}\in\mathbb{R}^{512\times16384}$$
 
 得到：
 
-$ K^C\in\mathbb{R}^{B\times T\times16384} $
+$$K^C\in\mathbb{R}^{B\times T\times16384}$$
 
 Reshape：
 
-$ K^C\rightarrow[B,T,128,128] $
+$$K^C\rightarrow[B,T,128,128]$$
 
 **第三步：恢复 Value**
 
-$ V^C=C^{KV}W^{UV} $
+$$V^C=C^{KV}W^{UV}$$
 
 其中：
 
-$ W^{UV}\in\mathbb{R}^{512\times16384} $
+$$W^{UV}\in\mathbb{R}^{512\times16384}$$
 
 得到：
 
-$ V^C\in\mathbb{R}^{B\times T\times16384} $
+$$V^C\in\mathbb{R}^{B\times T\times16384}$$
 
 Reshape：
 
-$ V^C\rightarrow[B,T,128,128] $
+$$V^C\rightarrow[B,T,128,128]$$
 
 这里需要建立一个重要认识：
 
@@ -2464,37 +2543,37 @@ $ V^C\rightarrow[B,T,128,128] $
 #### 16.3.5 为什么叫低秩压缩（Low-Rank Compression）？
 我们把刚才的公式展开：
 
-$ C^{KV}=XW^{DKV} $
+$$C^{KV}=XW^{DKV}$$
 
-$ K^C=C^{KV}W^{UK} $
+$$K^C=C^{KV}W^{UK}$$
 
 代入：
 
-$ K^C=XW^{DKV}W^{UK} $
+$$K^C=XW^{DKV}W^{UK}$$
 
 可以把两个矩阵合并：
 
-$ K^C=X(W^{DKV}W^{UK}) $
+$$K^C=X(W^{DKV}W^{UK})$$
 
 其中：
 
-$ W^{DKV}\in\mathbb{R}^{5120\times512} $
+$$W^{DKV}\in\mathbb{R}^{5120\times512}$$
 
-$ W^{UK}\in\mathbb{R}^{512\times16384} $
+$$W^{UK}\in\mathbb{R}^{512\times16384}$$
 
 所以：
 
-$ W^{DKV}W^{UK}\in\mathbb{R}^{5120\times16384} $
+$$W^{DKV}W^{UK}\in\mathbb{R}^{5120\times16384}$$
 
 但这个组合矩阵的秩最多为 512：
 
-$ \boxed{Rank(W^{DKV}W^{UK})\leq512} $
+$$\boxed{Rank(W^{DKV}W^{UK})\leq512}$$
 
 也就是说，原本 5120 维输入映射到 16384 维 K 表示，现在通过一个秩最多为 512 的低秩分解完成。
 
 V 也是一样：
 
-$ V^C=X(W^{DKV}W^{UV}) $
+$$V^C=X(W^{DKV}W^{UV})$$
 
 这就是 Low-Rank Key-Value Joint Compression 的含义。
 
@@ -2520,11 +2599,11 @@ V：先压缩，再恢复
 
 假设：
 
-$ K^C=XW^{DKV}W^{UK} $
+$$K^C=XW^{DKV}W^{UK}$$
 
 如果直接对 K 使用 RoPE：
 
-$ K'=RoPE(K^C) $
+$$K'=RoPE(K^C)$$
 
 RoPE 是与 Token 位置有关的变换，因此无法简单地与 Up Projection 合并成一个固定的线性投影。
 
@@ -2567,31 +2646,31 @@ Key：
 
 **Query 的位置分支：**
 
-$ Q^R=RoPE(C^QW^{UQ_R}) $
+$$Q^R=RoPE(C^QW^{UQ_R})$$
 
 其中：
 
-$ W^{UQ_R}\in\mathbb{R}^{1536\times8192} $
+$$W^{UQ_R}\in\mathbb{R}^{1536\times8192}$$
 
 因为：
 
-$ 128\times64=8192 $
+$$128\times64=8192$$
 
 所以：
 
-$ Q^R\in\mathbb{R}^{B\times T\times128\times64} $
+$$Q^R\in\mathbb{R}^{B\times T\times128\times64}$$
 
 **Key 的位置分支：**
 
-$ K^R=RoPE(XW^{KR}) $
+$$K^R=RoPE(XW^{KR})$$
 
 其中：
 
-$ W^{KR}\in\mathbb{R}^{5120\times64} $
+$$W^{KR}\in\mathbb{R}^{5120\times64}$$
 
 得到：
 
-$ K^R\in\mathbb{R}^{B\times T\times64} $
+$$K^R\in\mathbb{R}^{B\times T\times64}$$
 
 注意一个非常关键的设计：
 
@@ -2613,17 +2692,17 @@ K 的 RoPE 部分只有一组 64 维向量，由所有 128 个 Attention Head �
 
 对于第 i 个 Head：
 
-$ Q_i=Concat(Q_i^C,Q_i^R) $
+$$Q_i=Concat(Q_i^C,Q_i^R)$$
 
-$ K_i=Concat(K_i^C,K^R) $
+$$K_i=Concat(K_i^C,K^R)$$
 
 因此：
 
-$ Q_i,K_i\in\mathbb{R}^{192} $
+$$Q_i,K_i\in\mathbb{R}^{192}$$
 
 而：
 
-$ V_i\in\mathbb{R}^{128} $
+$$V_i\in\mathbb{R}^{128}$$
 
 结构图：
 
@@ -2661,49 +2740,49 @@ Value Head
 ### 16.5 最终 Attention 怎么计算？
 现在已经得到：
 
-$ Q:[B,T,128,192] $
+$$Q:[B,T,128,192]$$
 
-$ K:[B,T,128,192] $
+$$K:[B,T,128,192]$$
 
-$ V:[B,T,128,128] $
+$$V:[B,T,128,128]$$
 
 其中 K 的 RoPE 部分会广播到 128 个 Head。
 
 对于每个 Head：
 
-$ S_i=\frac{Q_iK_i^T}{\sqrt{192}} $
+$$S_i=\frac{Q_iK_i^T}{\sqrt{192}}$$
 
 然后：
 
-$ A_i=Softmax(S_i+Mask) $
+$$A_i=Softmax(S_i+Mask)$$
 
 最后：
 
-$ O_i=A_iV_i $
+$$O_i=A_iV_i$$
 
 其中：
 
-$ [T,T]\times[T,128]=[T,128] $
+$$[T,T]\times[T,128]=[T,128]$$
 
 128 个 Head 拼接：
 
-$ O=Concat(O_1,\ldots,O_{128}) $
+$$O=Concat(O_1,\ldots,O_{128})$$
 
 得到：
 
-$ O\in\mathbb{R}^{B\times T\times16384} $
+$$O\in\mathbb{R}^{B\times T\times16384}$$
 
 最后经过 Output Projection：
 
-$ Y=OW_O $
+$$Y=OW_O$$
 
 其中：
 
-$ W_O\in\mathbb{R}^{16384\times5120} $
+$$W_O\in\mathbb{R}^{16384\times5120}$$
 
 最终：
 
-$ \boxed{Y\in\mathbb{R}^{B\times T\times5120}} $
+$$\boxed{Y\in\mathbb{R}^{B\times T\times5120}}$$
 
 因此，MLA 并没有改变 Transformer Block 的输入和输出维度。
 
@@ -2719,7 +2798,7 @@ MLA 不再缓存每个 Head 的完整 K、V，而是保存：
 
 因此：
 
-$ \boxed{D_{cache}=512+64=576} $
+$$\boxed{D_{cache}=512+64=576}$$
 
 注意：不是只缓存 512 维，还需要额外缓存 64 维的 RoPE Key。
 
@@ -2741,9 +2820,9 @@ GQA KV Heads    = 8
 
 因此：
 
-$ \frac{32768}{576}\approx56.89 $
+$$\frac{32768}{576}\approx56.89$$
 
-$ \frac{2048}{576}\approx3.56 $
+$$\frac{2048}{576}\approx3.56$$
 
 也就是说：
 
@@ -2766,11 +2845,11 @@ BF16 每个数值占 2 Bytes。
 
 MLA：
 
-$ M=128000\times60\times576\times2 $
+$$M=128000\times60\times576\times2$$
 
 换算：
 
-$ \boxed{M\approx8.24GiB} $
+$$\boxed{M\approx8.24GiB}$$
 
 对比：
 
@@ -2788,9 +2867,9 @@ $ \boxed{M\approx8.24GiB} $
 
 我们刚才的公式：
 
-$ K^C=C^{KV}W^{UK} $
+$$K^C=C^{KV}W^{UK}$$
 
-$ V^C=C^{KV}W^{UV} $
+$$V^C=C^{KV}W^{UV}$$
 
 看起来推理时还是要把 K、V 恢复出来。
 
@@ -2798,15 +2877,15 @@ $ V^C=C^{KV}W^{UV} $
 
 先看 Key：
 
-$ q_i^Tk_i^C $
+$$q_i^Tk_i^C$$
 
 代入：
 
-$ q_i^T(W_i^{UK})^Tc^{KV} $
+$$q_i^T(W_i^{UK})^Tc^{KV}$$
 
 可以重新组织为：
 
-$ \left(W_i^{UK}q_i\right)^Tc^{KV} $
+$$\left(W_i^{UK}q_i\right)^Tc^{KV}$$
 
 这样就可以把 Key Up Projection 的计算吸收到 Query 一侧。
 
@@ -2816,15 +2895,15 @@ $ \left(W_i^{UK}q_i\right)^Tc^{KV} $
 
 Value 也类似：
 
-$ \sum_j a_jv_{j,i}^C $
+$$\sum_j a_jv_{j,i}^C$$
 
 代入：
 
-$ \sum_j a_jc_j^{KV}W_i^{UV} $
+$$\sum_j a_jc_j^{KV}W_i^{UV}$$
 
 重新组织：
 
-$ \left(\sum_j a_jc_j^{KV}\right)W_i^{UV} $
+$$\left(\sum_j a_jc_j^{KV}\right)W_i^{UV}$$
 
 这样可以先对低维 Latent 进行加权求和，再通过 Up Projection 得到 Value 结果。
 
@@ -2846,7 +2925,7 @@ MLA 主要解决的是 KV Cache 和相关访存开销。
 
 对于标准全局因果 Attention，Prefill 阶段的序列交互计算仍然具有：
 
-$ O(T^2) $
+$$O(T^2)$$
 
 的复杂度。
 
@@ -2873,15 +2952,15 @@ Decode 阶段，每生成一个 Token，仍然需要与历史 Token 进行注意
 
 因此：
 
-$ P_{MLA}=\sum_i P_i $
+$$P_{MLA}=\sum_i P_i$$
 
-$ \boxed{P_{MLA}\approx149.23M} $
+$$\boxed{P_{MLA}\approx149.23M}$$
 
 这是每层 MLA 的主要投影参数量。
 
 60 层：
 
-$ 149.23M\times60\approx8.95B $
+$$149.23M\times60\approx8.95B$$
 
 这里可以看出，MLA 并不是单纯减少参数量的设计。
 
@@ -2907,39 +2986,39 @@ FFN Hidden Size  = 12288
 
 输入：
 
-$ X\in\mathbb{R}^{B\times T\times5120} $
+$$X\in\mathbb{R}^{B\times T\times5120}$$
 
 经过三个 Linear。
 
 Gate Projection：
 
-$ G=XW_g $
+$$G=XW_g$$
 
-$ W_g\in\mathbb{R}^{5120\times12288} $
+$$W_g\in\mathbb{R}^{5120\times12288}$$
 
 Up Projection：
 
-$ U=XW_u $
+$$U=XW_u$$
 
-$ W_u\in\mathbb{R}^{5120\times12288} $
+$$W_u\in\mathbb{R}^{5120\times12288}$$
 
 SiLU 激活和逐元素相乘：
 
-$ H=SiLU(G)\odot U $
+$$H=SiLU(G)\odot U$$
 
 得到：
 
-$ H\in\mathbb{R}^{B\times T\times12288} $
+$$H\in\mathbb{R}^{B\times T\times12288}$$
 
 Down Projection：
 
-$ Y=HW_d $
+$$Y=HW_d$$
 
-$ W_d\in\mathbb{R}^{12288\times5120} $
+$$W_d\in\mathbb{R}^{12288\times5120}$$
 
 最终：
 
-$ Y\in\mathbb{R}^{B\times T\times5120} $
+$$Y\in\mathbb{R}^{B\times T\times5120}$$
 
 完整流程：
 
@@ -3071,19 +3150,19 @@ Routed Experts  = 160
 
 输入一个 Token：
 
-$ x_t\in\mathbb{R}^{5120} $
+$$x_t\in\mathbb{R}^{5120}$$
 
 Router 权重矩阵：
 
-$ W_r\in\mathbb{R}^{5120\times160} $
+$$W_r\in\mathbb{R}^{5120\times160}$$
 
 计算：
 
-$ R_t=x_tW_r $
+$$R_t=x_tW_r$$
 
 得到：
 
-$ R_t\in\mathbb{R}^{160} $
+$$R_t\in\mathbb{R}^{160}$$
 
 也就是说，每个 Token 都会得到 160 个专家分数。
 
@@ -3106,13 +3185,13 @@ Expert 160：0.05
 
 对于 DeepSeek-V2，Router 使用 Sigmoid 计算专家关联分数：
 
-$ s_t=Sigmoid(R_t) $
+$$s_t=Sigmoid(R_t)$$
 
 然后选择分数最高的 Top-K 个专家。
 
 例如：
 
-$ TopK=6 $
+$$TopK=6$$
 
 那么这个 Token 就会选择 6 个专家。
 
@@ -3138,33 +3217,33 @@ Expert 33：0.05
 
 分别计算：
 
-$ Y_4=Expert_4(x_t) $
+$$Y_4=Expert_4(x_t)$$
 
-$ Y_7=Expert_7(x_t) $
+$$Y_7=Expert_7(x_t)$$
 
 一直到：
 
-$ Y_{33}=Expert_{33}(x_t) $
+$$Y_{33}=Expert_{33}(x_t)$$
 
 然后按照 Router 权重进行加权求和。
 
 如果对选中的 Top-K 权重进行归一化：
 
-$ \tilde{s}_{i,t}
+$$\tilde{s}_{i,t}
 =
 \frac{s_{i,t}}
-{\sum_{j\in TopK}s_{j,t}} $
+{\sum_{j\in TopK}s_{j,t}}$$
 
 最终：
 
-$ \boxed{
+$$\boxed{
 Y_t=\sum_{i\in TopK}
 \tilde{s}_{i,t}Expert_i(x_t)
-} $
+}$$
 
 得到：
 
-$ Y_t\in\mathbb{R}^{5120} $
+$$Y_t\in\mathbb{R}^{5120}$$
 
 这里需要注意：
 
@@ -3201,7 +3280,7 @@ Expert 8：FFN Hidden Size = 6144
 
 那么每个 Token 实际使用的 FFN 总宽度：
 
-$ 2\times6144=12288 $
+$$2\times6144=12288$$
 
 DeepSeek 的思路是：
 
@@ -3356,7 +3435,7 @@ DeepSeek-V2 不是 160 个专家全部激活。
 
 因此：
 
-$ N_{active}=2+6=8 $
+$$N_{active}=2+6=8$$
 
 每个 Token 在一个 MoE 层中会经过 8 个专家 FFN。
 
@@ -3365,39 +3444,39 @@ $ N_{active}=2+6=8 $
 
 输入：
 
-$ x\in\mathbb{R}^{5120} $
+$$x\in\mathbb{R}^{5120}$$
 
 Gate Projection：
 
-$ G=xW_g $
+$$G=xW_g$$
 
-$ W_g\in\mathbb{R}^{5120\times1536} $
+$$W_g\in\mathbb{R}^{5120\times1536}$$
 
 Up Projection：
 
-$ U=xW_u $
+$$U=xW_u$$
 
-$ W_u\in\mathbb{R}^{5120\times1536} $
+$$W_u\in\mathbb{R}^{5120\times1536}$$
 
 激活：
 
-$ H=SiLU(G)\odot U $
+$$H=SiLU(G)\odot U$$
 
 Down Projection：
 
-$ Y=HW_d $
+$$Y=HW_d$$
 
-$ W_d\in\mathbb{R}^{1536\times5120} $
+$$W_d\in\mathbb{R}^{1536\times5120}$$
 
 最终：
 
-$ Y\in\mathbb{R}^{5120} $
+$$Y\in\mathbb{R}^{5120}$$
 
 所以每个专家的参数量：
 
-$ P_{expert}=3\times5120\times1536 $
+$$P_{expert}=3\times5120\times1536$$
 
-$ \boxed{P_{expert}=23,592,960} $
+$$\boxed{P_{expert}=23,592,960}$$
 
 约为 23.59M。
 
@@ -3418,9 +3497,9 @@ DeepSeek-V2 每个 MoE 层：
 
 因此：
 
-$ P_{total}=162\times23,592,960 $
+$$P_{total}=162\times23,592,960$$
 
-$ \boxed{P_{total}\approx3.822B} $
+$$\boxed{P_{total}\approx3.822B}$$
 
 注意，这只是一个 MoE 层的专家 FFN 参数量，不包含 Router 等其他参数。
 
@@ -3436,13 +3515,13 @@ $ \boxed{P_{total}\approx3.822B} $
 
 因此：
 
-$ P_{active}=8\times23,592,960 $
+$$P_{active}=8\times23,592,960$$
 
-$ \boxed{P_{active}\approx188.74M} $
+$$\boxed{P_{active}\approx188.74M}$$
 
 你可以发现一个很有意思的关系：
 
-$ 8\times1536=12288 $
+$$8\times1536=12288$$
 
 也就是说，8 个激活专家的中间维度总和为 12288。
 
@@ -3463,15 +3542,15 @@ DeepSeek-V2 有：
 
 因此，全部专家参数量：
 
-$ P_{experts}=59\times3.822B $
+$$P_{experts}=59\times3.822B$$
 
-$ \boxed{P_{experts}\approx225.5B} $
+$$\boxed{P_{experts}\approx225.5B}$$
 
 而每个 Token 激活的专家参数量：
 
-$ P_{active,experts}=59\times188.74M $
+$$P_{active,experts}=59\times188.74M$$
 
-$ \boxed{P_{active,experts}\approx11.14B} $
+$$\boxed{P_{active,experts}\approx11.14B}$$
 
 再加上：
 
@@ -3585,35 +3664,35 @@ DeepSeek-V2 会统计：
 
 定义专家实际分配比例：
 
-$ f_i=
+$$f_i=
 \frac{N_r}{K_rT}
 \sum_{t=1}^{T}
-\mathbb{1}(i\in TopK_t) $
+\mathbb{1}(i\in TopK_t)$$
 
 其中：
 
-+ $ N_r $：Routed Expert 总数。
-+ $ K_r $：每个 Token 选择的专家数。
-+ $ T $：统计范围内的 Token 数量。
-+ $ \mathbb{1} $：指示函数。
++ $N_r$：Routed Expert 总数。
++ $K_r$：每个 Token 选择的专家数。
++ $T$：统计范围内的 Token 数量。
++ $\mathbb{1}$：指示函数。
 
 平均路由分数：
 
-$ P_i=\frac{1}{T}\sum_{t=1}^{T}s_{i,t} $
+$$P_i=\frac{1}{T}\sum_{t=1}^{T}s_{i,t}$$
 
 专家级均衡损失：
 
-$ \boxed{
+$$\boxed{
 L_{ExpBal}=\alpha_1
 \sum_{i=1}^{N_r}f_iP_i
-} $
+}$$
 
 训练时，将这些辅助损失加入总 Loss：
 
-$ L_{total}
+$$L_{total}
 =
 L_{LM}+L_{ExpBal}
-+L_{DevBal}+L_{CommBal} $
++L_{DevBal}+L_{CommBal}$$
 
 这里的目标不是让每个专家永远接收完全相同数量的 Token，而是在保留 Router 自主选择能力的前提下，避免负载过度集中。
 
@@ -3665,11 +3744,11 @@ Expert Parallel Devices = 8
 
 假设输入：
 
-$ X\in\mathbb{R}^{B\times T\times5120} $
+$$X\in\mathbb{R}^{B\times T\times5120}$$
 
 首先将 Token 展平：
 
-$ X_{flat}\in\mathbb{R}^{(B\times T)\times5120} $
+$$X_{flat}\in\mathbb{R}^{(B\times T)\times5120}$$
 
 例如：
 
@@ -3686,11 +3765,11 @@ Sequence Length = 4
 
 每个 Token 独立进行 Router 计算：
 
-$ R=X_{flat}W_r $
+$$R=X_{flat}W_r$$
 
 得到：
 
-$ R\in\mathbb{R}^{8\times160} $
+$$R\in\mathbb{R}^{8\times160}$$
 
 然后进行 Sigmoid 和 Top-6 选择。
 
@@ -3710,20 +3789,20 @@ Token 3 → Expert 1、3、6、15、18、25
 
 每个专家处理自己接收到的 Token：
 
-$ Y_i=Expert_i(X_i) $
+$$Y_i=Expert_i(X_i)$$
 
 然后按照 Router 权重融合输出。
 
 最后与 Shared Experts 的输出相加：
 
-$ Y=
+$$Y=
 \sum_{j=1}^{N_s}Expert_j^s(X)
 +
-\sum_{i\in TopK}\tilde{s}_iExpert_i^r(X) $
+\sum_{i\in TopK}\tilde{s}_iExpert_i^r(X)$$
 
 最终输出：
 
-$ Y\in\mathbb{R}^{B\times T\times5120} $
+$$Y\in\mathbb{R}^{B\times T\times5120}$$
 
 下面是一个简化的 PyTorch 教学实现：
 
@@ -3975,8 +4054,8 @@ Residual Add
 
 最重要的是理解两者的分工：
 
-$ \boxed{\text{MLA}\rightarrow\text{降低 KV Cache 开销}} $
+$$\boxed{\text{MLA}\rightarrow\text{降低 KV Cache 开销}}$$
 
-$ \boxed{\text{MoE}\rightarrow\text{降低每 Token 激活计算量}} $
+$$\boxed{\text{MoE}\rightarrow\text{降低每 Token 激活计算量}}$$
 
 它们是两个相互独立、但可以组合使用的架构设计。

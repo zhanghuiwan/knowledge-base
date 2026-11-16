@@ -205,35 +205,35 @@ Patch Size = 16
 
 输入张量：
 
-$ X\in\mathbb{R}^{B\times3\times256\times256} $
+$$X\in\mathbb{R}^{B\times3\times256\times256}$$
 
 将图片划分为不重叠的 Patch。
 
 每个 Patch 的尺寸：
 
-$ 16\times16\times3=768 $
+$$16\times16\times3=768$$
 
 Patch 数量：
 
-$ N=\frac{256}{16}\times\frac{256}{16} $
+$$N=\frac{256}{16}\times\frac{256}{16}$$
 
-$ \boxed{N=256} $
+$$\boxed{N=256}$$
 
 每个 Patch 展平后是一个 768 维向量。
 
 然后通过一个可学习的线性投影，将其映射到 Hidden Size：
 
-$ W_{patch}\in\mathbb{R}^{768\times4096} $
+$$W_{patch}\in\mathbb{R}^{768\times4096}$$
 
 因此：
 
-$ X_{patch}=Flatten(Patch)\times W_{patch} $
+$$X_{patch}=Flatten(Patch)\times W_{patch}$$
 
 输出：
 
-$ \boxed{
+$$\boxed{
 X_{patch}\in\mathbb{R}^{B\times256\times4096}
-} $
+}$$
 
 可以理解为：
 
@@ -275,25 +275,25 @@ nn.Conv2d(
 
 CLS Token：
 
-$ X_{cls}\in\mathbb{R}^{1\times4096} $
+$$X_{cls}\in\mathbb{R}^{1\times4096}$$
 
 Register Tokens：
 
-$ X_{reg}\in\mathbb{R}^{4\times4096} $
+$$X_{reg}\in\mathbb{R}^{4\times4096}$$
 
 将它们与 Patch Tokens 拼接：
 
-$ X_0=Concat(X_{cls},X_{reg},X_{patch}) $
+$$X_0=Concat(X_{cls},X_{reg},X_{patch})$$
 
 得到：
 
-$ \boxed{
+$$\boxed{
 X_0\in\mathbb{R}^{B\times261\times4096}
-} $
+}$$
 
 其中：
 
-$ 261=1+4+256 $
+$$261=1+4+256$$
 
 对应：
 
@@ -366,23 +366,23 @@ flowchart TD
 
 第一部分：
 
-$ X_1=X+LayerScale(Attention(LN(X))) $
+$$X_1=X+LayerScale(Attention(LN(X)))$$
 
 第二部分：
 
-$ Y=X_1+LayerScale(FFN(LN(X_1))) $
+$$Y=X_1+LayerScale(FFN(LN(X_1)))$$
 
 每个 Transformer Block 的输入和输出维度保持不变：
 
-$ [B,261,4096]\rightarrow[B,261,4096] $
+$$[B,261,4096]\rightarrow[B,261,4096]$$
 
 经过 40 层之后，最终得到：
 
-$ X_{40}\in\mathbb{R}^{B\times261\times4096} $
+$$X_{40}\in\mathbb{R}^{B\times261\times4096}$$
 
 这里还有两个实现细节：
 
-+ LayerScale 初始化值为 $ 10^{-5} $。
++ LayerScale 初始化值为 $10^{-5}$。
 + 训练时使用 Stochastic Depth，Drop Path Rate 为 0.4。
 
 LayerScale 通过可学习的通道缩放系数控制残差分支的输出幅度，有助于稳定深层网络训练。
@@ -401,33 +401,33 @@ Head Dimension  = 128
 
 因此：
 
-$ D_{head}=\frac{4096}{32}=128 $
+$$D_{head}=\frac{4096}{32}=128$$
 
 输入：
 
-$ X\in\mathbb{R}^{B\times261\times4096} $
+$$X\in\mathbb{R}^{B\times261\times4096}$$
 
 首先经过 LayerNorm。
 
 然后通过三个线性层生成 Q、K、V。
 
-$ Q=XW_Q $
+$$Q=XW_Q$$
 
-$ K=XW_K $
+$$K=XW_K$$
 
-$ V=XW_V $
+$$V=XW_V$$
 
 权重矩阵：
 
-$ W_Q,W_K,W_V\in\mathbb{R}^{4096\times4096} $
+$$W_Q,W_K,W_V\in\mathbb{R}^{4096\times4096}$$
 
 得到：
 
-$ Q,K,V\in\mathbb{R}^{B\times261\times4096} $
+$$Q,K,V\in\mathbb{R}^{B\times261\times4096}$$
 
 然后 Reshape：
 
-$ Q,K,V\rightarrow[B,32,261,128] $
+$$Q,K,V\rightarrow[B,32,261,128]$$
 
 这就是 32 个 Attention Head，每个 Head 128 维。
 
@@ -448,30 +448,30 @@ Rotary Position Embedding。
 
 每个 Patch 不只有一个序列位置，而是具有二维空间坐标：
 
-$ (x,y) $
+$$(x,y)$$
 
 DINOv3 使用二维坐标来构建 RoPE。
 
 具体做法：
 
 1. 为每个 Patch 分配二维坐标。
-2. 将坐标归一化到 $ [-1,1] $。
+2. 将坐标归一化到 $[-1,1]$。
 3. 根据二维坐标计算旋转位置编码。
 4. 对 Q 和 K 应用旋转变换。
 
 可以表示为：
 
-$ Q'=RoPE(Q,x,y) $
+$$Q'=RoPE(Q,x,y)$$
 
-$ K'=RoPE(K,x,y) $
+$$K'=RoPE(K,x,y)$$
 
 然后计算 Attention：
 
-$ Attention(Q,K,V)
+$$Attention(Q,K,V)
 =
 Softmax\left(
 \frac{Q'K'^T}{\sqrt{128}}
-\right)V $
+\right)V$$
 
 DINOv3 还采用了 RoPE-box jittering。
 
@@ -479,15 +479,15 @@ DINOv3 还采用了 RoPE-box jittering。
 
 原始坐标范围：
 
-$ [-1,1] $
+$$[-1,1]$$
 
 训练时随机缩放坐标范围：
 
-$ [-s,s] $
+$$[-s,s]$$
 
 其中：
 
-$ s\in[0.5,2] $
+$$s\in[0.5,2]$$
 
 这样可以增强模型对不同图像分辨率、尺度以及宽高比的适应能力。
 
@@ -515,7 +515,7 @@ flowchart TD
 
 最终 Attention 输出：
 
-$ O\in\mathbb{R}^{B\times261\times4096} $
+$$O\in\mathbb{R}^{B\times261\times4096}$$
 
 这里使用的是标准 Multi-Head Self-Attention，而不是 GQA。
 
@@ -534,41 +534,41 @@ FFN Hidden  = 8192
 
 输入：
 
-$ X\in\mathbb{R}^{B\times261\times4096} $
+$$X\in\mathbb{R}^{B\times261\times4096}$$
 
 SwiGLU 使用三个线性投影：
 
 Gate Projection：
 
-$ G=XW_1 $
+$$G=XW_1$$
 
 Up Projection：
 
-$ U=XW_2 $
+$$U=XW_2$$
 
 其中：
 
-$ W_1,W_2\in\mathbb{R}^{4096\times8192} $
+$$W_1,W_2\in\mathbb{R}^{4096\times8192}$$
 
 经过 SiLU 激活和逐元素相乘：
 
-$ H=SiLU(G)\odot U $
+$$H=SiLU(G)\odot U$$
 
 得到：
 
-$ H\in\mathbb{R}^{B\times261\times8192} $
+$$H\in\mathbb{R}^{B\times261\times8192}$$
 
 最后经过 Down Projection：
 
-$ Y=HW_3 $
+$$Y=HW_3$$
 
 其中：
 
-$ W_3\in\mathbb{R}^{8192\times4096} $
+$$W_3\in\mathbb{R}^{8192\times4096}$$
 
 最终：
 
-$ Y\in\mathbb{R}^{B\times261\times4096} $
+$$Y\in\mathbb{R}^{B\times261\times4096}$$
 
 ### 4.2 为什么配置中的 FFN Ratio 是 3？
 官方代码中：
@@ -596,15 +596,15 @@ swiglu_hidden_features = d + (-d % align_to)
 
 因此：
 
-$ hidden\_features=4096\times3=12288 $
+$$hidden\_features=4096\times3=12288$$
 
 SwiGLU 内部调整：
 
-$ d=12288\times\frac{2}{3}=8192 $
+$$d=12288\times\frac{2}{3}=8192$$
 
 8192 本身能够被 64 整除，因此：
 
-$ \boxed{D_{FFN}=8192} $
+$$\boxed{D_{FFN}=8192}$$
 
 这就是配置文件中的 FFN Ratio 为 3，但实际 FFN Hidden Dimension 为 8192 的原因。
 
@@ -626,38 +626,38 @@ Attention：
 
 Q、K、V：
 
-$ P_{QKV}=3\times4096\times4096 $
+$$P_{QKV}=3\times4096\times4096$$
 
-$ P_{QKV}=50,331,648 $
+$$P_{QKV}=50,331,648$$
 
 Output Projection：
 
-$ P_O=4096\times4096 $
+$$P_O=4096\times4096$$
 
-$ P_O=16,777,216 $
+$$P_O=16,777,216$$
 
 因此：
 
-$ P_{Attention}=67,108,864 $
+$$P_{Attention}=67,108,864$$
 
 FFN：
 
-$ P_{FFN}=2\times4096\times8192
-+8192\times4096 $
+$$P_{FFN}=2\times4096\times8192
++8192\times4096$$
 
-$ P_{FFN}=100,663,296 $
+$$P_{FFN}=100,663,296$$
 
 单层 Transformer Block：
 
-$ P_{Block}=P_{Attention}+P_{FFN} $
+$$P_{Block}=P_{Attention}+P_{FFN}$$
 
-$ \boxed{P_{Block}\approx167.77M} $
+$$\boxed{P_{Block}\approx167.77M}$$
 
 40 层：
 
-$ P_{Transformer}=40\times167.77M $
+$$P_{Transformer}=40\times167.77M$$
 
-$ \boxed{P_{Transformer}\approx6.711B} $
+$$\boxed{P_{Transformer}\approx6.711B}$$
 
 再加上：
 
@@ -670,7 +670,7 @@ $ \boxed{P_{Transformer}\approx6.711B} $
 
 最终 Backbone 参数量约为：
 
-$ \boxed{P_{ViT-7B}=6.716B} $
+$$\boxed{P_{ViT-7B}=6.716B}$$
 
 注意：
 
@@ -815,21 +815,21 @@ Teacher 并不是一个固定不变的模型，而是随着 Student 训练不断
 
 采用 EMA（Exponential Moving Average）更新：
 
-$ \boxed{
+$$\boxed{
 \theta_t
 \leftarrow
 m\theta_t+(1-m)\theta_s
-} $
+}$$
 
 其中：
 
-+ $ \theta_t $：Teacher 当前参数。
-+ $ \theta_s $：Student 当前参数。
-+ $ m $：EMA Momentum。
++ $\theta_t$：Teacher 当前参数。
++ $\theta_s$：Student 当前参数。
++ $m$：EMA Momentum。
 
 DINOv3 论文中使用的 Teacher EMA 系数为：
 
-$ m=0.999 $
+$$m=0.999$$
 
 例如：
 
@@ -896,15 +896,15 @@ DINOv3 使用 Patch Size = 16。
 
 Global Crop：
 
-$ N_g=\frac{256}{16}=16 $
+$$N_g=\frac{256}{16}=16$$
 
-$ P_g=16\times16=256 $
+$$P_g=16\times16=256$$
 
 Local Crop：
 
-$ N_l=\frac{112}{16}=7 $
+$$N_l=\frac{112}{16}=7$$
 
-$ P_l=7\times7=49 $
+$$P_l=7\times7=49$$
 
 Global Crop：
 
@@ -930,45 +930,45 @@ Student 则需要学习更多不同尺度的图像视图。
 这样既可以增加训练监督信号，也能够减少 Teacher 的计算量。
 
 #### 5.3.2 不同视图对应的特征
-假设 Batch Size 为 $ B $，Backbone 输出维度为 4096。
+假设 Batch Size 为 $B$，Backbone 输出维度为 4096。
 
 Student 的 CLS Token：
 
 Global：
 
-$ H_{s,g}^{cls}
+$$H_{s,g}^{cls}
 \in
-\mathbb{R}^{2\times B\times4096} $
+\mathbb{R}^{2\times B\times4096}$$
 
 Local：
 
-$ H_{s,l}^{cls}
+$$H_{s,l}^{cls}
 \in
-\mathbb{R}^{8\times B\times4096} $
+\mathbb{R}^{8\times B\times4096}$$
 
 Teacher 的 CLS Token：
 
-$ H_t^{cls}
+$$H_t^{cls}
 \in
-\mathbb{R}^{2\times B\times4096} $
+\mathbb{R}^{2\times B\times4096}$$
 
 Student 的 Global Patch Tokens：
 
-$ H_{s,g}^{patch}
+$$H_{s,g}^{patch}
 \in
-\mathbb{R}^{2\times B\times256\times4096} $
+\mathbb{R}^{2\times B\times256\times4096}$$
 
 Teacher 的 Global Patch Tokens：
 
-$ H_t^{patch}
+$$H_t^{patch}
 \in
-\mathbb{R}^{2\times B\times256\times4096} $
+\mathbb{R}^{2\times B\times256\times4096}$$
 
 Student 的 Local Patch Tokens：
 
-$ H_{s,l}^{patch}
+$$H_{s,l}^{patch}
 \in
-\mathbb{R}^{8\times B\times49\times4096} $
+\mathbb{R}^{8\times B\times49\times4096}$$
 
 这里需要特别注意：
 
@@ -984,7 +984,7 @@ $ H_{s,l}^{patch}
 
 DINOv3 的 Backbone 输出维度为：
 
-$ D=4096 $
+$$D=4096$$
 
 但 4096 维的特征并不会直接用于计算最终的交叉熵。
 
@@ -1022,7 +1022,7 @@ flowchart TD
 
 最终输出：
 
-$ Z_D\in\mathbb{R}^{B\times262144} $
+$$Z_D\in\mathbb{R}^{B\times262144}$$
 
 262144 表示 Prototype 的数量。
 
@@ -1072,7 +1072,7 @@ flowchart TD
 
 最终输出：
 
-$ Z_I\in\mathbb{R}^{M\times98304} $
+$$Z_I\in\mathbb{R}^{M\times98304}$$
 
 其中 M 是参与 iBOT 计算的 Masked Patch 总数量。
 
@@ -1180,11 +1180,11 @@ Teacher 使用 Sinkhorn-Knopp，而不是直接使用普通 Softmax。
 #### 5.5.2 Student 的概率计算
 假设 Student 经过 DINO Head 后输出：
 
-$ z_s\in\mathbb{R}^{262144} $
+$$z_s\in\mathbb{R}^{262144}$$
 
 使用 Softmax：
 
-$ \boxed{
+$$\boxed{
 p_s(k)=
 \frac{
 \exp(z_s(k)/\tau_s)
@@ -1192,17 +1192,17 @@ p_s(k)=
 \sum_{j=1}^{K}
 \exp(z_s(j)/\tau_s)
 }
-} $
+}$$
 
 其中：
 
-+ $ K=262144 $：Prototype 数量。
-+ $ z_s(k) $：Student 对第 k 个 Prototype 的 Logit。
-+ $ \tau_s $：Student Temperature。
++ $K=262144$：Prototype 数量。
++ $z_s(k)$：Student 对第 k 个 Prototype 的 Logit。
++ $\tau_s$：Student Temperature。
 
 官方实现中 Student Temperature 的默认值为：
 
-$ \tau_s=0.1 $
+$$\tau_s=0.1$$
 
 为什么需要 Temperature？
 
@@ -1251,21 +1251,21 @@ Softmax([20, 10, 5])
 #### 5.5.3 Teacher 的目标概率分布
 Teacher 经过 DINO Head 后，同样得到：
 
-$ z_t\in\mathbb{R}^{262144} $
+$$z_t\in\mathbb{R}^{262144}$$
 
 但 Teacher 不直接使用普通 Softmax。
 
 而是使用 Sinkhorn-Knopp 算法：
 
-$ \boxed{
+$$\boxed{
 p_t=Sinkhorn(z_t,\tau_t)
-} $
+}$$
 
 其中：
 
-+ $ z_t $：Teacher Logits。
-+ $ \tau_t $：Teacher Temperature。
-+ $ p_t $：Teacher 产生的目标概率分布。
++ $z_t$：Teacher Logits。
++ $\tau_t$：Teacher Temperature。
++ $p_t$：Teacher 产生的目标概率分布。
 
 Teacher Temperature 由训练过程中的 Temperature Schedule 控制。
 
@@ -1277,16 +1277,16 @@ Teacher 有 N 个样本，每个样本输出 K 个 Prototype Logits。
 
 构造矩阵：
 
-$ Z_t\in\mathbb{R}^{N\times K} $
+$$Z_t\in\mathbb{R}^{N\times K}$$
 
 首先进行温度缩放和指数运算：
 
-$ Q=
-\exp(Z_t/\tau_t)^T $
+$$Q=
+\exp(Z_t/\tau_t)^T$$
 
 因此：
 
-$ Q\in\mathbb{R}^{K\times N} $
+$$Q\in\mathbb{R}^{K\times N}$$
 
 接下来进行矩阵归一化。
 
@@ -1294,34 +1294,34 @@ $ Q\in\mathbb{R}^{K\times N} $
 
 让矩阵所有元素的和为 1：
 
-$ Q\leftarrow
-\frac{Q}{\sum_{i,j}Q_{ij}} $
+$$Q\leftarrow
+\frac{Q}{\sum_{i,j}Q_{ij}}$$
 
 **第二步：行归一化**
 
 让每个 Prototype 对应的总分配质量趋向于相等：
 
-$ Q_{ij}
+$$Q_{ij}
 \leftarrow
 \frac{Q_{ij}}
-{\sum_j Q_{ij}} $
+{\sum_j Q_{ij}}$$
 
 再除以 K：
 
-$ Q_{ij}\leftarrow\frac{Q_{ij}}{K} $
+$$Q_{ij}\leftarrow\frac{Q_{ij}}{K}$$
 
 此时每一行的目标总质量为：
 
-$ \sum_jQ_{ij}\approx\frac{1}{K} $
+$$\sum_jQ_{ij}\approx\frac{1}{K}$$
 
 **第三步：列归一化**
 
 让每个样本对应的概率分布之和为 1：
 
-$ Q_{ij}
+$$Q_{ij}
 \leftarrow
 \frac{Q_{ij}}
-{\sum_iQ_{ij}} $
+{\sum_iQ_{ij}}$$
 
 这样每个样本都具有一个归一化的 Prototype 分配分布。
 
@@ -1333,13 +1333,13 @@ $ Q_{ij}
 
 最终：
 
-$ \boxed{
+$$\boxed{
 p_t=Q^T
-} $
+}$$
 
 得到：
 
-$ p_t\in\mathbb{R}^{N\times K} $
+$$p_t\in\mathbb{R}^{N\times K}$$
 
 每个样本对应的 Prototype 概率之和为 1，同时不同 Prototype 在整个批次中的分配质量趋向均衡。
 
@@ -1356,27 +1356,27 @@ Sinkhorn-Knopp 并不是强制每张图片均匀分配到所有 Prototype。
 
 Student：
 
-$ p_s(k) $
+$$p_s(k)$$
 
 Teacher：
 
-$ p_t(k) $
+$$p_t(k)$$
 
 计算交叉熵：
 
-$ \boxed{
+$$\boxed{
 \mathcal{L}_{DINO}
 =
 -\sum_{k=1}^{K}
 p_t(k)\log p_s(k)
-} $
+}$$
 
 展开：
 
-$ \mathcal{L}_{DINO}
+$$\mathcal{L}_{DINO}
 =
 -\sum_{k=1}^{262144}
-p_t(k)\log p_s(k) $
+p_t(k)\log p_s(k)$$
 
 举一个简单例子。
 
@@ -1384,29 +1384,29 @@ p_t(k)\log p_s(k) $
 
 Teacher：
 
-$ p_t=[0.7,0.2,0.1,0] $
+$$p_t=[0.7,0.2,0.1,0]$$
 
 Student：
 
-$ p_s=[0.5,0.3,0.1,0.1] $
+$$p_s=[0.5,0.3,0.1,0.1]$$
 
 那么：
 
-$ \begin{aligned}
+$$\begin{aligned}
 L
 =&-[0.7\log0.5\\
 &+0.2\log0.3\\
 &+0.1\log0.1\\
 &+0\log0.1]
-\end{aligned} $
+\end{aligned}$$
 
 得到：
 
-$ L\approx0.915 $
+$$L\approx0.915$$
 
 如果 Student 的预测越来越接近 Teacher：
 
-$ p_s\rightarrow p_t $
+$$p_s\rightarrow p_t$$
 
 那么交叉熵就会逐渐降低。
 
@@ -1476,15 +1476,15 @@ Teacher：
 
 Global 匹配数量：
 
-$ N_g=2\times(2-1)=2 $
+$$N_g=2\times(2-1)=2$$
 
 Local 匹配数量：
 
-$ N_l=8\times2=16 $
+$$N_l=8\times2=16$$
 
 总匹配数量：
 
-$ N=2+16=18 $
+$$N=2+16=18$$
 
 也就是说：
 
@@ -1495,46 +1495,46 @@ $ N=2+16=18 $
 
 Global Loss：
 
-$ L_g=
+$$L_g=
 \frac{1}{2B}
 \sum_{b=1}^{B}
 \sum_{i\neq j}
-CE(p_t^{g_j,b},p_s^{g_i,b}) $
+CE(p_t^{g_j,b},p_s^{g_i,b})$$
 
 Local Loss：
 
-$ L_l=
+$$L_l=
 \frac{1}{16B}
 \sum_{b=1}^{B}
 \sum_{i=1}^{8}
 \sum_{j=1}^{2}
-CE(p_t^{g_j,b},p_s^{l_i,b}) $
+CE(p_t^{g_j,b},p_s^{l_i,b})$$
 
 其中：
 
-+ $ B $：Batch Size。
-+ $ g_i $：第 i 个 Global Crop。
-+ $ l_i $：第 i 个 Local Crop。
-+ $ p_t $：Teacher 目标分布。
-+ $ p_s $：Student 预测分布。
++ $B$：Batch Size。
++ $g_i$：第 i 个 Global Crop。
++ $l_i$：第 i 个 Local Crop。
++ $p_t$：Teacher 目标分布。
++ $p_s$：Student 预测分布。
 
 最终：
 
-$ \mathcal{L}_{DINO}
+$$\mathcal{L}_{DINO}
 =
 \frac{2}{18}L_g
 +
-\frac{16}{18}L_l $
+\frac{16}{18}L_l$$
 
 即：
 
-$ \boxed{
+$$\boxed{
 \mathcal{L}_{DINO}
 =
 \frac{1}{9}L_g
 +
 \frac{8}{9}L_l
-} $
+}$$
 
 这样每一组有效视图匹配具有相同的平均权重。
 
@@ -1610,15 +1610,15 @@ iBOT 不是直接重建被 Mask 区域的 RGB 像素，而是预测 Teacher 提�
 #### 5.6.1 Mask 机制
 假设一个 Global Crop 为：
 
-$ 256\times256 $
+$$256\times256$$
 
 Patch Size：
 
-$ 16\times16 $
+$$16\times16$$
 
 那么：
 
-$ N=16\times16=256 $
+$$N=16\times16=256$$
 
 一共包含 256 个 Patch Token。
 
@@ -1660,33 +1660,33 @@ Teacher 则使用没有 Mask 的 Global Crop，生成对应位置的目标特征
 #### 5.6.2 Teacher 和 Student 如何得到 Patch 特征？
 假设：
 
-$ H_t\in
-\mathbb{R}^{B\times N\times4096} $
+$$H_t\in
+\mathbb{R}^{B\times N\times4096}$$
 
 Teacher 对完整图像进行特征提取。
 
 Student：
 
-$ H_s\in
-\mathbb{R}^{B\times N\times4096} $
+$$H_s\in
+\mathbb{R}^{B\times N\times4096}$$
 
 Student 对 Mask 后的图像进行特征提取。
 
 然后从 Student 中取出被 Mask 的 Patch Token：
 
-$ H_s^{masked}
+$$H_s^{masked}
 =
-H_s[\mathcal{M}] $
+H_s[\mathcal{M}]$$
 
 从 Teacher 中取出相同位置的 Patch Token：
 
-$ H_t^{masked}
+$$H_t^{masked}
 =
-H_t[\mathcal{M}] $
+H_t[\mathcal{M}]$$
 
 其中：
 
-$ \mathcal{M} $ 表示被 Mask 的 Patch 位置集合。
+$\mathcal{M}$ 表示被 Mask 的 Patch 位置集合。
 
 这里最重要的是：
 
@@ -1701,29 +1701,29 @@ Student 的第 5 个 Patch 被 Mask，那么 Teacher 就使用同一个 Global C
 #### 5.6.3 经过独立的 iBOT Head
 Student：
 
-$ Z_s^{patch}
+$$Z_s^{patch}
 =
-Head_s(H_s^{masked}) $
+Head_s(H_s^{masked})$$
 
 Teacher：
 
-$ Z_t^{patch}
+$$Z_t^{patch}
 =
-Head_t(H_t^{masked}) $
+Head_t(H_t^{masked})$$
 
 iBOT Head 输出维度：
 
-$ K=98304 $
+$$K=98304$$
 
 假设总共有 M 个 Masked Patches：
 
-$ Z_s^{patch}
+$$Z_s^{patch}
 \in
-\mathbb{R}^{M\times98304} $
+\mathbb{R}^{M\times98304}$$
 
-$ Z_t^{patch}
+$$Z_t^{patch}
 \in
-\mathbb{R}^{M\times98304} $
+\mathbb{R}^{M\times98304}$$
 
 这里 Student 和 Teacher 的输出都是 Prototype Logits。
 
@@ -1732,17 +1732,17 @@ Teacher 的输出不能直接作为交叉熵目标。
 
 需要经过 Sinkhorn-Knopp：
 
-$ \boxed{
+$$\boxed{
 p_t^{patch}
 =
 Sinkhorn(Z_t^{patch},\tau_t)
-} $
+}$$
 
 得到：
 
-$ p_t^{patch}
+$$p_t^{patch}
 \in
-\mathbb{R}^{M\times98304} $
+\mathbb{R}^{M\times98304}$$
 
 与 DINO Loss 一样：
 
@@ -1763,7 +1763,7 @@ iBOT：
 #### 5.6.5 Student 计算 Patch 概率分布
 Student 使用 Softmax：
 
-$ \boxed{
+$$\boxed{
 p_s^{patch}(k)
 =
 \frac{
@@ -1772,15 +1772,15 @@ p_s^{patch}(k)
 \sum_{j=1}^{K}
 \exp(z_s^{patch}(j)/\tau_s)
 }
-} $
+}$$
 
 其中：
 
-$ K=98304 $
+$$K=98304$$
 
 Student Temperature 默认：
 
-$ \tau_s=0.1 $
+$$\tau_s=0.1$$
 
 这样每个 Masked Patch 都会得到一个 98304 维的概率分布。
 
@@ -1789,15 +1789,15 @@ $ \tau_s=0.1 $
 
 Teacher：
 
-$ p_t^{patch} $
+$$p_t^{patch}$$
 
 Student：
 
-$ p_s^{patch} $
+$$p_s^{patch}$$
 
 计算交叉熵：
 
-$ \boxed{
+$$\boxed{
 \mathcal{L}_{iBOT}
 =
 -\frac{1}{|\mathcal{M}|}
@@ -1805,13 +1805,13 @@ $ \boxed{
 \sum_{k=1}^{K}
 p_t^i(k)
 \log p_s^i(k)
-} $
+}$$
 
 其中：
 
-+ $ \mathcal{M} $：Masked Patch 集合。
-+ $ p_t^i $：Teacher 第 i 个 Patch 的目标分布。
-+ $ p_s^i $：Student 第 i 个 Patch 的预测分布。
++ $\mathcal{M}$：Masked Patch 集合。
++ $p_t^i$：Teacher 第 i 个 Patch 的目标分布。
++ $p_s^i$：Student 第 i 个 Patch 的预测分布。
 + K：Prototype 数量。
 
 但这里还需要注意官方代码中的一个实现细节：
@@ -1822,34 +1822,34 @@ p_t^i(k)
 
 + B：Batch Size。
 + 两个 Global Crops。
-+ 第 c 个 Global Crop 中第 b 张图片被 Mask 的 Patch 集合为 $ \mathcal{M}_{c,b} $。
++ 第 c 个 Global Crop 中第 b 张图片被 Mask 的 Patch 集合为 $\mathcal{M}_{c,b}$。
 
 先计算每个 Masked Patch 的交叉熵：
 
-$ \ell_{c,b,i}
+$$\ell_{c,b,i}
 =
 -\sum_{k=1}^{K}
 p_t^{c,b,i}(k)
-\log p_s^{c,b,i}(k) $
+\log p_s^{c,b,i}(k)$$
 
 然后对每个图像视图内部的 Masked Patch 求平均：
 
-$ L_{c,b}
+$$L_{c,b}
 =
 \frac{1}{|\mathcal{M}_{c,b}|}
 \sum_{i\in\mathcal{M}_{c,b}}
-\ell_{c,b,i} $
+\ell_{c,b,i}$$
 
 最后对两个 Global Crop 和整个 Batch 求平均：
 
-$ \boxed{
+$$\boxed{
 \mathcal{L}_{iBOT}
 =
 \frac{1}{2B}
 \sum_{c=1}^{2}
 \sum_{b=1}^{B}
 L_{c,b}
-} $
+}$$
 
 如果某个图像视图没有 Masked Patch，则该视图对应的损失为 0。
 
@@ -1941,35 +1941,35 @@ DINOv3 在 Student 的 CLS Token 上计算 KoLeo Loss。
 
 假设：
 
-$ H_s^{cls}
+$$H_s^{cls}
 \in
-\mathbb{R}^{B\times4096} $
+\mathbb{R}^{B\times4096}$$
 
 对特征进行 L2 Normalize：
 
-$ \boxed{
+$$\boxed{
 x_i=
 \frac{h_i}{\|h_i\|_2}
-} $
+}$$
 
 得到单位长度的特征向量。
 
 #### 5.7.2 计算最近邻
-对于 Batch 中的每一个特征向量 $ x_i $：
+对于 Batch 中的每一个特征向量 $x_i$：
 
 找到与它最接近的其他特征向量。
 
-$ \boxed{
+$$\boxed{
 j(i)=
 \arg\min_{j\neq i}
 \|x_i-x_j\|_2
-} $
+}$$
 
 因为已经进行了 L2 Normalize，所以也可以通过最大化余弦相似度找到最近邻：
 
-$ j(i)=
+$$j(i)=
 \arg\max_{j\neq i}
-x_i^Tx_j $
+x_i^Tx_j$$
 
 注意：
 
@@ -1980,23 +1980,23 @@ x_i^Tx_j $
 #### 5.7.3 计算最近邻距离
 找到最近邻后：
 
-$ d_i=
-\|x_i-x_{j(i)}\|_2 $
+$$d_i=
+\|x_i-x_{j(i)}\|_2$$
 
 然后计算：
 
-$ \boxed{
+$$\boxed{
 \mathcal{L}_{KoLeo}
 =
 -\frac{1}{B}
 \sum_{i=1}^{B}
 \log(d_i+\epsilon)
-} $
+}$$
 
 其中：
 
-+ $ d_i $：当前特征与最近邻特征的欧氏距离。
-+ $ \epsilon $：防止数值计算出现 $ \log(0) $。
++ $d_i$：当前特征与最近邻特征的欧氏距离。
++ $\epsilon$：防止数值计算出现 $\log(0)$。
 
 为什么使用负号？
 
@@ -2004,11 +2004,11 @@ $ \boxed{
 
 当最近邻距离增加：
 
-$ d_i\uparrow $
+$$d_i\uparrow$$
 
 那么：
 
-$ -\log(d_i+\epsilon)\downarrow $
+$$-\log(d_i+\epsilon)\downarrow$$
 
 因此模型会倾向于增大特征与最近邻之间的距离。
 
@@ -2073,15 +2073,15 @@ KoLeo Group Size = 16
 #### 5.7.6 KoLeo 的 Loss 权重
 DINOv3 的初始训练中：
 
-$ \boxed{
+$$\boxed{
 w_{KoLeo}=0.1
-} $
+}$$
 
 所以：
 
-$ L_{KoLeo}^{weighted}
+$$L_{KoLeo}^{weighted}
 =
-0.1L_{KoLeo} $
+0.1L_{KoLeo}$$
 
 KoLeo 不需要 Teacher 提供目标分布。
 
@@ -2131,7 +2131,7 @@ Gram Matrix 是一个描述不同特征向量两两相似关系的矩阵。
 
 假设一张图片经过 Backbone 后得到 P 个 Patch 特征：
 
-$ X\in\mathbb{R}^{P\times D} $
+$$X\in\mathbb{R}^{P\times D}$$
 
 其中：
 
@@ -2142,28 +2142,28 @@ $ X\in\mathbb{R}^{P\times D} $
 
 然后计算：
 
-$ \boxed{
+$$\boxed{
 G=XX^T
-} $
+}$$
 
 因此：
 
-$ G\in\mathbb{R}^{P\times P} $
+$$G\in\mathbb{R}^{P\times P}$$
 
 Gram Matrix 中的每一个元素：
 
-$ G_{ij}=x_i^Tx_j $
+$$G_{ij}=x_i^Tx_j$$
 
 表示第 i 个 Patch 与第 j 个 Patch 的余弦相似度。
 
 例如：
 
-$ G=
+$$G=
 \begin{bmatrix}
 1.0 & 0.8 & 0.2\\
 0.8 & 1.0 & 0.3\\
 0.2 & 0.3 & 1.0
-\end{bmatrix} $
+\end{bmatrix}$$
 
 可以理解为：
 
@@ -2188,48 +2188,48 @@ Gram Teacher。
 
 Student：
 
-$ X_S\in\mathbb{R}^{P\times D} $
+$$X_S\in\mathbb{R}^{P\times D}$$
 
 Gram Teacher：
 
-$ X_G\in\mathbb{R}^{P\times D} $
+$$X_G\in\mathbb{R}^{P\times D}$$
 
 两者都使用 Backbone 输出的 Patch Features，而不是 DINO Head 或 iBOT Head 的 Prototype Logits。
 
 分别计算 Gram Matrix：
 
-$ G_S=X_SX_S^T $
+$$G_S=X_SX_S^T$$
 
-$ G_G=X_GX_G^T $
+$$G_G=X_GX_G^T$$
 
 然后比较两个矩阵之间的差异。
 
 #### 5.8.3 Gram Loss 的计算
 定义：
 
-$ \boxed{
+$$\boxed{
 \mathcal{L}_{Gram}
 =
 \left\|
 X_SX_S^T-X_GX_G^T
 \right\|_F^2
-} $
+}$$
 
 其中：
 
-+ $ X_S $：Student 的 L2 归一化 Patch Features。
-+ $ X_G $：Gram Teacher 的 L2 归一化 Patch Features。
-+ $ \|\cdot\|_F $：Frobenius 范数。
++ $X_S$：Student 的 L2 归一化 Patch Features。
++ $X_G$：Gram Teacher 的 L2 归一化 Patch Features。
++ $\|\cdot\|_F$：Frobenius 范数。
 
 展开：
 
-$ \mathcal{L}_{Gram}
+$$\mathcal{L}_{Gram}
 =
 \sum_{i=1}^{P}
 \sum_{j=1}^{P}
 \left(
 G_S(i,j)-G_G(i,j)
-\right)^2 $
+\right)^2$$
 
 也就是：
 
@@ -2242,44 +2242,44 @@ G_S(i,j)-G_G(i,j)
 
 Student：
 
-$ G_S=
+$$G_S=
 \begin{bmatrix}
 1.0 & 0.7\\
 0.7 & 1.0
-\end{bmatrix} $
+\end{bmatrix}$$
 
 Gram Teacher：
 
-$ G_G=
+$$G_G=
 \begin{bmatrix}
 1.0 & 0.9\\
 0.9 & 1.0
-\end{bmatrix} $
+\end{bmatrix}$$
 
 那么：
 
-$ G_S-G_G=
+$$G_S-G_G=
 \begin{bmatrix}
 0 & -0.2\\
 -0.2 & 0
-\end{bmatrix} $
+\end{bmatrix}$$
 
 因此：
 
-$ L_{Gram}
+$$L_{Gram}
 =
-0^2+(-0.2)^2+(-0.2)^2+0^2 $
+0^2+(-0.2)^2+(-0.2)^2+0^2$$
 
-$ \boxed{
+$$\boxed{
 L_{Gram}=0.08
-} $
+}$$
 
 模型会通过反向传播调整 Student 的 Patch Features，使其相似性矩阵逐渐接近 Gram Teacher。
 
 #### 5.8.4 为什么不直接比较两个特征向量？
 如果直接比较：
 
-$ \|X_S-X_G\|^2 $
+$$\|X_S-X_G\|^2$$
 
 那么模型就需要让每个 Patch 的特征向量本身尽可能接近。
 
@@ -2341,7 +2341,7 @@ Maximum Gram Teacher Updates = 3
 
 第二阶段总 Loss：
 
-$ \boxed{
+$$\boxed{
 \mathcal{L}_{Ref}
 =
 w_D\mathcal{L}_{DINO}
@@ -2351,11 +2351,11 @@ w_D\mathcal{L}_{DINO}
 w_{DK}\mathcal{L}_{KoLeo}
 +
 w_{Gram}\mathcal{L}_{Gram}
-} $
+}$$
 
 其中：
 
-$ w_{Gram}=2 $
+$$w_{Gram}=2$$
 
 其他权重按照 Refinement 训练配置设置。
 
@@ -2404,7 +2404,7 @@ DINOv3 的训练分为两个主要阶段。
 #### 5.9.1 第一阶段：初始自监督预训练
 论文给出的初始训练目标：
 
-$ \boxed{
+$$\boxed{
 \mathcal{L}_{Pre}
 =
 \mathcal{L}_{DINO}
@@ -2412,7 +2412,7 @@ $ \boxed{
 \mathcal{L}_{iBOT}
 +
 0.1\mathcal{L}_{KoLeo}
-} $
+}$$
 
 其中：
 
@@ -2440,7 +2440,7 @@ KoLeo：
 #### 5.9.2 第二阶段：Gram Refinement
 初始训练完成后，增加 Gram Loss：
 
-$ \boxed{
+$$\boxed{
 \mathcal{L}_{Ref}
 =
 w_D\mathcal{L}_{DINO}
@@ -2450,7 +2450,7 @@ w_D\mathcal{L}_{DINO}
 w_{DK}\mathcal{L}_{KoLeo}
 +
 w_{Gram}\mathcal{L}_{Gram}
-} $
+}$$
 
 其中 Gram Loss 的作用是：
 
@@ -2902,7 +2902,7 @@ Sinkhorn-Knopp 是一种矩阵归一化算法。
 
 Teacher 输出矩阵：
 
-$ Z\in\mathbb{R}^{B\times K} $
+$$Z\in\mathbb{R}^{B\times K}$$
 
 其中：
 
@@ -2911,11 +2911,11 @@ $ Z\in\mathbb{R}^{B\times K} $
 
 先进行温度缩放：
 
-$ Q=\exp(Z/\tau) $
+$$Q=\exp(Z/\tau)$$
 
 然后转置：
 
-$ Q\in\mathbb{R}^{K\times B} $
+$$Q\in\mathbb{R}^{K\times B}$$
 
 接下来反复进行行归一化和列归一化。
 
@@ -2929,7 +2929,7 @@ $ Q\in\mathbb{R}^{K\times B} $
 
 经过若干次迭代：
 
-$ Q\rightarrow Q_{balanced} $
+$$Q\rightarrow Q_{balanced}$$
 
 最终得到 Teacher 的目标分布。
 
@@ -2984,7 +2984,7 @@ Meta 从 Instagram 公开帖子中的图片构建原始数据池。
 
 经过平台内容审核后，获得约：
 
-$ \boxed{17B\text{ Images}} $
+$$\boxed{17B\text{ Images}}$$
 
 注意：
 
@@ -2992,7 +2992,7 @@ $ \boxed{17B\text{ Images}} $
 
 最终通过数据筛选得到：
 
-$ \boxed{1.689B\text{ Images}} $
+$$\boxed{1.689B\text{ Images}}$$
 
 这个数据集被命名为：
 
@@ -3132,7 +3132,7 @@ SAT-493M。
 
 包含约：
 
-$ 493M\text{ Images} $
+$$493M\text{ Images}$$
 
 主要用于遥感、卫星图像以及航空影像领域。
 
@@ -3172,7 +3172,7 @@ $ 493M\text{ Images} $
 
 论文还报告了：
 
-$ Total\ GPU\ Hours=61,440 $
+$$Total\ GPU\ Hours=61,440$$
 
 即约 6.14 万 GPU 小时。
 
@@ -3376,27 +3376,27 @@ Gram Matrix 是一个描述向量之间两两相似度的矩阵。
 
 那么：
 
-$ X\in\mathbb{R}^{P\times d} $
+$$X\in\mathbb{R}^{P\times d}$$
 
 先对每个 Patch 特征进行 L2 归一化：
 
-$ \hat X=Normalize(X) $
+$$\hat X=Normalize(X)$$
 
 然后计算：
 
-$ G=\hat X\hat X^T $
+$$G=\hat X\hat X^T$$
 
 得到：
 
-$ \boxed{G\in\mathbb{R}^{P\times P}} $
+$$\boxed{G\in\mathbb{R}^{P\times P}}$$
 
 其中：
 
-$ G_{ij}=\hat x_i\cdot\hat x_j $
+$$G_{ij}=\hat x_i\cdot\hat x_j$$
 
 因为特征已经归一化，所以：
 
-$ G_{ij}=CosineSimilarity(x_i,x_j) $
+$$G_{ij}=CosineSimilarity(x_i,x_j)$$
 
 也就是说：
 
@@ -3451,40 +3451,40 @@ Gram Teacher：
 
 分别提取 Patch 特征：
 
-$ X_S\in\mathbb{R}^{P\times d} $
+$$X_S\in\mathbb{R}^{P\times d}$$
 
-$ X_G\in\mathbb{R}^{P\times d} $
+$$X_G\in\mathbb{R}^{P\times d}$$
 
 分别计算 Gram Matrix：
 
-$ G_S=X_SX_S^T $
+$$G_S=X_SX_S^T$$
 
-$ G_G=X_GX_G^T $
+$$G_G=X_GX_G^T$$
 
 然后让 Student 的 Gram Matrix 接近 Gram Teacher：
 
-$ \boxed{
+$$\boxed{
 \mathcal{L}_{Gram}
 =
 \left\|
 X_SX_S^T-X_GX_G^T
 \right\|_F^2
-} $
+}$$
 
 其中：
 
-+ $ X_S $：Student 的归一化 Patch 特征。
-+ $ X_G $：Gram Teacher 的归一化 Patch 特征。
-+ $ \|\cdot\|_F $：Frobenius Norm。
++ $X_S$：Student 的归一化 Patch 特征。
++ $X_G$：Gram Teacher 的归一化 Patch 特征。
++ $\|\cdot\|_F$：Frobenius Norm。
 
 ### 9.5 为什么不直接让 Student 特征等于 Teacher 特征？
 这是 Gram Anchoring 非常重要的设计。
 
 假设直接使用特征蒸馏：
 
-$ \mathcal{L}
+$$\mathcal{L}
 =
-\|X_S-X_G\|^2 $
+\|X_S-X_G\|^2$$
 
 那么 Student 必须尽可能复现 Teacher 的每个特征向量。
 
@@ -3624,7 +3624,7 @@ flowchart TD
 ### 9.9 Refinement 阶段的总 Loss
 加入 Gram Anchoring 后：
 
-$ \boxed{
+$$\boxed{
 \mathcal{L}_{Ref}
 =
 w_D\mathcal{L}_{DINO}
@@ -3634,11 +3634,11 @@ w_D\mathcal{L}_{DINO}
 w_{DK}\mathcal{L}_{DKoleo}
 +
 w_{Gram}\mathcal{L}_{Gram}
-} $
+}$$
 
 其中：
 
-$ w_{Gram}=2 $
+$$w_{Gram}=2$$
 
 核心变化：
 
@@ -3906,33 +3906,33 @@ Patch Size = 16
 
 Patch 数量：
 
-$ N=16\times16=256 $
+$$N=16\times16=256$$
 
 因此：
 
 CLS：
 
-$ X_{CLS}\in\mathbb{R}^{1\times4096} $
+$$X_{CLS}\in\mathbb{R}^{1\times4096}$$
 
 Patch：
 
-$ X_{Patch}\in\mathbb{R}^{1\times256\times4096} $
+$$X_{Patch}\in\mathbb{R}^{1\times256\times4096}$$
 
 Register：
 
-$ X_{Register}\in\mathbb{R}^{1\times4\times4096} $
+$$X_{Register}\in\mathbb{R}^{1\times4\times4096}$$
 
 ### 12.3 Patch Features 如何变成特征图？
 Patch Features 原本是：
 
-$ X_{Patch}\in\mathbb{R}^{B\times N\times4096} $
+$$X_{Patch}\in\mathbb{R}^{B\times N\times4096}$$
 
 但对于分割、检测等任务，通常需要二维特征图。
 
 因此将其 Reshape：
 
-$ X_{Map}\in
-\mathbb{R}^{B\times4096\times16\times16} $
+$$X_{Map}\in
+\mathbb{R}^{B\times4096\times16\times16}$$
 
 例如：
 
@@ -4233,11 +4233,11 @@ DINOv3 的核心优势是提供通用视觉特征。
 ### 14.1 图像分类
 使用 CLS Token：
 
-$ X_{cls}\in\mathbb{R}^{B\times4096} $
+$$X_{cls}\in\mathbb{R}^{B\times4096}$$
 
 然后连接一个分类器：
 
-$ Y=X_{cls}W_{cls} $
+$$Y=X_{cls}W_{cls}$$
 
 即可完成分类。
 
@@ -4251,11 +4251,11 @@ $ Y=X_{cls}W_{cls} $
 ### 14.2 语义分割
 使用 Patch Features：
 
-$ X_{patch}\in\mathbb{R}^{B\times N\times4096} $
+$$X_{patch}\in\mathbb{R}^{B\times N\times4096}$$
 
 转换成二维特征图：
 
-$ X_{map}\in\mathbb{R}^{B\times4096\times H_p\times W_p} $
+$$X_{map}\in\mathbb{R}^{B\times4096\times H_p\times W_p}$$
 
 然后连接分割解码器：
 
@@ -4311,17 +4311,17 @@ DINOv3 的 Patch Features 可以计算不同图片之间的余弦相似度。
 
 假设：
 
-$ F_A\in\mathbb{R}^{N\times D} $
+$$F_A\in\mathbb{R}^{N\times D}$$
 
-$ F_B\in\mathbb{R}^{M\times D} $
+$$F_B\in\mathbb{R}^{M\times D}$$
 
 相似度矩阵：
 
-$ S=F_AF_B^T $
+$$S=F_AF_B^T$$
 
 得到：
 
-$ S\in\mathbb{R}^{N\times M} $
+$$S\in\mathbb{R}^{N\times M}$$
 
 可以根据相似度进行 Patch Matching。
 
@@ -4368,13 +4368,13 @@ DINOv3 的 7B Backbone 本质上仍然是 Dense Vision Transformer。
 ### 15.2 训练方法方面
 DINOv3 使用三个核心自监督目标：
 
-$ \mathcal{L}_{Pre}
+$$\mathcal{L}_{Pre}
 =
 \mathcal{L}_{DINO}
 +
 \mathcal{L}_{iBOT}
 +
-0.1\mathcal{L}_{DKoleo} $
+0.1\mathcal{L}_{DKoleo}$$
 
 其中：
 
@@ -4384,11 +4384,11 @@ $ \mathcal{L}_{Pre}
 
 然后引入 Gram Anchoring：
 
-$ \mathcal{L}_{Gram}
+$$\mathcal{L}_{Gram}
 =
 \left\|
 X_SX_S^T-X_GX_G^T
-\right\|_F^2 $
+\right\|_F^2$$
 
 解决长时间训练中的局部特征退化问题。
 
@@ -4699,23 +4699,23 @@ Student Probability
 
 **Teacher：**
 
-$ p_t\in\mathbb{R}^{262144} $
+$$p_t\in\mathbb{R}^{262144}$$
 
 **Student：**
 
-$ p_s\in\mathbb{R}^{262144} $
+$$p_s\in\mathbb{R}^{262144}$$
 
 **计算交叉熵：**
 
-$ \mathcal{L}_{DINO}
+$$\mathcal{L}_{DINO}
 =
 -\sum_{k=1}^{262144}
-p_t(k)\log p_s(k) $
+p_t(k)\log p_s(k)$$
 
 **iBOT Head 也是相同的思路：**
 
-$ p_t^{patch},p_s^{patch}
-\in\mathbb{R}^{98304} $
+$$p_t^{patch},p_s^{patch}
+\in\mathbb{R}^{98304}$$
 
 **比较对应 Masked Patch 的概率分布。**
 
@@ -4736,28 +4736,28 @@ $ p_t^{patch},p_s^{patch}
 
 **假设 ConvNeXt 最后一个 Stage 输出：**
 
-$ X\in\mathbb{R}^{B\times C\times H\times W} $
+$$X\in\mathbb{R}^{B\times C\times H\times W}$$
 
 **首先对空间维度进行 Global Average Pooling：**
 
-$ X_{cls}
+$$X_{cls}
 =
 \frac{1}{HW}
 \sum_{i=1}^{H}
 \sum_{j=1}^{W}
-X_{i,j} $
+X_{i,j}$$
 
 **得到：**
 
-$ X_{cls}\in\mathbb{R}^{B\times C} $
+$$X_{cls}\in\mathbb{R}^{B\times C}$$
 
 **这个全局池化特征可以作为 CLS Token 对应的全局表示。**
 
 **同时，将原始特征图展开：**
 
-$ X_{patch}
+$$X_{patch}
 \in
-\mathbb{R}^{B\times HW\times C} $
+\mathbb{R}^{B\times HW\times C}$$
 
 **于是 ConvNeXt 也能够提供：**
 
@@ -4771,7 +4771,7 @@ $ X_{patch}
 
 **蒸馏使用与初始自监督预训练相同的训练目标。**
 
-$ \boxed{
+$$\boxed{
 \mathcal{L}_{Distill}
 =
 \mathcal{L}_{DINO}
@@ -4779,7 +4779,7 @@ $ \boxed{
 \mathcal{L}_{iBOT}
 +
 0.1\mathcal{L}_{DKoleo}
-} $
+}$$
 
 **这里有一个重要区别：**
 
@@ -4870,15 +4870,15 @@ flowchart TD
 
 **其中：**
 
-$ HeadDim=\frac{HiddenSize}{Heads} $
+$$HeadDim=\frac{HiddenSize}{Heads}$$
 
 **例如 ViT-B：**
 
-$ HeadDim=\frac{768}{12}=64 $
+$$HeadDim=\frac{768}{12}=64$$
 
 **ViT-7B：**
 
-$ HeadDim=\frac{4096}{32}=128 $
+$$HeadDim=\frac{4096}{32}=128$$
 
 **可以看到：**
 
@@ -5112,25 +5112,25 @@ flowchart TD
 
 **例如输入图片为：**
 
-$ X\in\mathbb{R}^{B\times3\times512\times512} $
+$$X\in\mathbb{R}^{B\times3\times512\times512}$$
 
 **ConvNeXt-Tiny 的输出尺寸：**
 
 **Stage 1：**
 
-$ F_1\in\mathbb{R}^{B\times96\times128\times128} $
+$$F_1\in\mathbb{R}^{B\times96\times128\times128}$$
 
 **Stage 2：**
 
-$ F_2\in\mathbb{R}^{B\times192\times64\times64} $
+$$F_2\in\mathbb{R}^{B\times192\times64\times64}$$
 
 **Stage 3：**
 
-$ F_3\in\mathbb{R}^{B\times384\times32\times32} $
+$$F_3\in\mathbb{R}^{B\times384\times32\times32}$$
 
 **Stage 4：**
 
-$ F_4\in\mathbb{R}^{B\times768\times16\times16} $
+$$F_4\in\mathbb{R}^{B\times768\times16\times16}$$
 
 **这就是 ConvNeXt 的层级化特征结构。**
 
@@ -5158,7 +5158,7 @@ flowchart TD
 
 **第一步：Depthwise Convolution**
 
-$ Y=DWConv_{7\times7}(X) $
+$$Y=DWConv_{7\times7}(X)$$
 
 **使用逐通道卷积提取空间特征。**
 
@@ -5168,23 +5168,23 @@ $ Y=DWConv_{7\times7}(X) $
 
 **第三步：Pointwise Linear 扩展**
 
-$ C\rightarrow4C $
+$$C\rightarrow4C$$
 
 **将通道维度扩大四倍。**
 
 **第四步：GELU 激活**
 
-$ Y=GELU(Y) $
+$$Y=GELU(Y)$$
 
 **第五步：Pointwise Linear 压缩**
 
-$ 4C\rightarrow C $
+$$4C\rightarrow C$$
 
 **恢复原来的通道维度。**
 
 **第六步：Residual Connection**
 
-$ Y=X+F(X) $
+$$Y=X+F(X)$$
 
 **最终输出与输入具有相同的空间尺寸和通道数量。**
 
@@ -5277,7 +5277,7 @@ $ Y=X+F(X) $
 
 **这样两者都具有：**
 
-$ N=32\times32=1024 $
+$$N=32\times32=1024$$
 
 **个 Patch Tokens。**
 
@@ -5364,21 +5364,21 @@ $ N=32\times32=1024 $
 
 **ConvNeXt-Tiny：**
 
-$ 86.6\rightarrow87.7 $
+$$86.6\rightarrow87.7$$
 
 **ConvNeXt-Large：**
 
-$ 88.9\rightarrow89.4 $
+$$88.9\rightarrow89.4$$
 
 **观察 ObjectNet：**
 
 **ConvNeXt-Tiny：**
 
-$ 52.6\rightarrow58.7 $
+$$52.6\rightarrow58.7$$
 
 **ConvNeXt-Large：**
 
-$ 59.3\rightarrow65.2 $
+$$59.3\rightarrow65.2$$
 
 **输入分辨率从 256 提升到 512 后，性能整体得到改善。**
 
@@ -5488,11 +5488,11 @@ $ 59.3\rightarrow65.2 $
 
 **256 分辨率：**
 
-$ \frac{20}{47}\approx42.6\% $
+$$\frac{20}{47}\approx42.6\%$$
 
 **512 分辨率：**
 
-$ \frac{81}{216}=37.5\% $
+$$\frac{81}{216}=37.5\%$$
 
 **也就是说，ConvNeXt-Base 的理论计算量明显低于 ViT-B。**
 
@@ -5519,11 +5519,11 @@ $ \frac{81}{216}=37.5\% $
 
 **参数量比例：**
 
-$ \frac{6716}{840}\approx8.0 $
+$$\frac{6716}{840}\approx8.0$$
 
 **计算量比例：**
 
-$ \frac{3550}{450}\approx7.89 $
+$$\frac{3550}{450}\approx7.89$$
 
 **因此 ViT-H+ 的参数量约为 ViT-7B 的 1/8，计算量也约为其 1/8。**
 
@@ -5571,11 +5571,11 @@ $ \frac{3550}{450}\approx7.89 $
 
 **输入分辨率从：**
 
-$ 896\times512 $
+$$896\times512$$
 
 **逐步增加到：**
 
-$ 7168\times4096 $
+$$7168\times4096$$
 
 **不同模型表现：**
 
@@ -5629,25 +5629,25 @@ $ 7168\times4096 $
 
 **输入：**
 
-$ X\in\mathbb{R}^{B\times3\times512\times512} $
+$$X\in\mathbb{R}^{B\times3\times512\times512}$$
 
 **Patch Size：**
 
-$ P=16 $
+$$P=16$$
 
 **Patch 数量：**
 
-$ N=\frac{512}{16}\times\frac{512}{16} $
+$$N=\frac{512}{16}\times\frac{512}{16}$$
 
-$ N=32\times32=1024 $
+$$N=32\times32=1024$$
 
 **最终 Patch Features：**
 
-$ F\in\mathbb{R}^{B\times1024\times768} $
+$$F\in\mathbb{R}^{B\times1024\times768}$$
 
 **转换为二维特征图：**
 
-$ F\in\mathbb{R}^{B\times768\times32\times32} $
+$$F\in\mathbb{R}^{B\times768\times32\times32}$$
 
 **对应 Stride = 16。**
 
@@ -5658,17 +5658,17 @@ $ F\in\mathbb{R}^{B\times768\times32\times32} $
 
 **输入：**
 
-$ X\in\mathbb{R}^{B\times3\times512\times512} $
+$$X\in\mathbb{R}^{B\times3\times512\times512}$$
 
 **四个 Stage 输出：**
 
-$ F_1\in\mathbb{R}^{B\times128\times128\times128} $
+$$F_1\in\mathbb{R}^{B\times128\times128\times128}$$
 
-$ F_2\in\mathbb{R}^{B\times256\times64\times64} $
+$$F_2\in\mathbb{R}^{B\times256\times64\times64}$$
 
-$ F_3\in\mathbb{R}^{B\times512\times32\times32} $
+$$F_3\in\mathbb{R}^{B\times512\times32\times32}$$
 
-$ F_4\in\mathbb{R}^{B\times1024\times16\times16} $
+$$F_4\in\mathbb{R}^{B\times1024\times16\times16}$$
 
 **对应：**
 

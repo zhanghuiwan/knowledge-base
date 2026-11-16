@@ -8,3 +8,13 @@
 .VPDoc h2 { margin-top: 2.4rem; padding-bottom: .5rem; border-bottom: 1px solid var(--vp-c-divider); }
 .VPDoc img { border-radius: 8px; }
 .VPDoc table { display: table; width: 100%; }
+
+/* 数学公式：窄屏下允许横向滚动，避免长公式撑破正文布局。 */
+.VPDoc mjx-container { max-width: 100%; }
+.VPDoc mjx-container[display="true"] {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: .25rem 0;
+}

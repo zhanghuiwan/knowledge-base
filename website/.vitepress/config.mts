@@ -1,5 +1,4 @@
 import { defineConfig } from 'vitepress'
-import mathjax3 from 'markdown-it-mathjax3'
 
 export default defineConfig({
   base: '/knowledge-base/',
@@ -9,9 +8,9 @@ export default defineConfig({
   cleanUrls: true,
   lastUpdated: true,
   markdown: {
+    math: true,
     lineNumbers: true,
     config(md) {
-      md.use(mathjax3)
       const defaultFence = md.renderer.rules.fence
       md.renderer.rules.fence = (tokens, idx, options, env, self) => {
         const token = tokens[idx]
