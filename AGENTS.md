@@ -11,20 +11,19 @@
 
 ## 目录说明
 
-- `skills/`：存放项目规则、文章模板和任务指引。执行任务时按需阅读，不要无差别加载全部文件。
+- `skills/`：存放供 AI 按需读取的项目 Skill 和操作指引。
 - `website/`：VitePress 网站源代码及知识文章。
-- `website/articles/`：所有文章统一放在这里，不再按领域建立分类目录。
+- `website/articles/`：所有文章统一放在这里，不按领域建立分类目录。
 - `website/.vitepress/`：网站配置、主题和样式。
 - `.github/workflows/`：GitHub Actions 构建与发布流程。
 
 ## 任务指引
 
-开始任务前先判断任务类型，再阅读对应文件：
+开始任务前先判断任务类型，再阅读对应文件，不要无差别加载全部 Skill：
 
-- 新建文章：阅读 `skills/article-writing.md`、`skills/article-template.md`、`skills/create-article.md`。
-- 修改文章：阅读 `skills/article-writing.md`、`skills/update-article.md`。
-- 修改网站：阅读 `skills/website-design.md`、`skills/modify-website.md`。
-- 同时涉及文章和网站：分别读取两类指引，不要遗漏。
+- 新建文章或修改文章：阅读 `skills/knowledge-article.md`。
+- 修改网站布局、样式或网站配置：阅读 `skills/website-design.md` 和 `skills/modify-website.md`。
+- 同时涉及文章和网站：阅读 `skills/knowledge-article.md`，并按需阅读网站相关 Skill。
 
 ## 内容管理规则
 
@@ -37,6 +36,7 @@
 7. 修改已有文章时保留原有技术含义、公式、代码和图表。用户没有要求重写时，不擅自改写正文。
 8. 不重复创建已有主题的文章。先查看 `website/articles/index.md`，必要时搜索文章正文。
 9. Markdown 源文件是知识内容的唯一可信来源；不要把构建生成的 HTML 当作原始知识。
+10. 文章的写作、公式、代码、图表和发布检查统一遵循 `skills/knowledge-article.md`。
 
 ## 网站维护规则
 
