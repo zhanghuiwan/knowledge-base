@@ -26,8 +26,11 @@ export default defineConfig({
     nav: [{ text: '首页', link: '/' }, { text: '文章', link: '/articles/' }],
     sidebar: { '/articles/': [{ text: '知识文章', items: [
       { text: '文章总览', link: '/articles/' },
+      { text: 'YOLO11 / YOLO26', link: '/articles/yolo11-yolo26/' },
       { text: 'RT-DETR', link: '/articles/rt-detr/' },
-      { text: 'RF-DETR', link: '/articles/rf-detr/' }
+      { text: 'RF-DETR', link: '/articles/rf-detr/' },
+      { text: 'DINOv3', link: '/articles/dinov3/' },
+      { text: 'ZGCM-1', link: '/articles/zgcm-1/' }
     ]}]},
     outline: { level: [2, 3], label: '本页目录' },
     search: { provider: 'local' },
