@@ -73,7 +73,7 @@ DEIMv2 的整体结构沿用 RT-DETR 风格的 Backbone、Hybrid Encoder、Decod
 
 DEIMv2 的整体结构可以概括为：
 
-\[
+$$
 \text{Image}
 \rightarrow
 \text{Backbone}
@@ -83,7 +83,7 @@ DEIMv2 的整体结构可以概括为：
 \text{Decoder}
 \rightarrow
 \text{PostProcessor}
-\]
+$$
 
 其中最重要的设计是：**根据模型规格选择不同的 Backbone 和 Encoder 路线，但最终都进入 DEIM Transformer Decoder。**
 
@@ -139,10 +139,10 @@ DEIMv2 一共提供八种模型规格：
 
 DINOv3 是基于 Vision Transformer 的视觉基础模型。以 ViT 的 Patch Size 为 16 为例，输入图像经过 Patch Embedding 后，空间特征通常对应：
 
-\[
+$$
 F_{\text{ViT}}\in
 \mathbb{R}^{B\times D\times H/16\times W/16}
-\]
+$$
 
 它主要提供单一空间尺度的密集特征。
 
@@ -173,21 +173,21 @@ DINOv3 ViT 的中间层能够提供不同深度的语义特征。
 
 假设选取三个 Transformer Block：
 
-\[
+$$
 F_1,F_2,F_3
 \in
 \mathbb{R}^{B\times D\times H/16\times W/16}
-\]
+$$
 
 将 Token 转换为二维特征图后，通过双线性插值调整空间大小：
 
-\[
+$$
 \begin{aligned}
 F_{1/8} &= \operatorname{Resize}(F_1,H/8,W/8)\\
 F_{1/16} &= \operatorname{Resize}(F_2,H/16,W/16)\\
 F_{1/32} &= \operatorname{Resize}(F_3,H/32,W/32)
 \end{aligned}
-\]
+$$
 
 注意：这里的 Resize 不会增加可学习参数。它只是改变特征图的空间尺寸。
 
@@ -230,13 +230,13 @@ flowchart TD
 
 概念上可以表示为：
 
-\[
+$$
 F_i=
 \operatorname{Conv}_{1\times1}
 \left(
 \operatorname{Concat}(S_i,P_i)
 \right)
-\]
+$$
 
 其中：
 
@@ -331,15 +331,15 @@ Pico、Femto、Atto 的 Backbone 输出尺度和通道配置与 DINOv3 路线不
 
 DINOv3 路线输出三个尺度：
 
-\[
+$$
 P_3,\ P_4,\ P_5
-\]
+$$
 
 对应步长：
 
-\[
+$$
 [8,16,32]
-\]
+$$
 
 HybridEncoder 的主要任务是：
 
@@ -362,9 +362,9 @@ LiteEncoder 面向极轻量级模型。
 
 其核心流程：
 
-\[
+$$
 F'=F+\operatorname{GAP}(F)
-\]
+$$
 
 然后通过卷积和归一化处理。
 
@@ -398,9 +398,9 @@ Encoder 输出多尺度特征后，会生成初始分类和边界框预测。
 
 随后通过 Top-K 选择得到候选 Queries：
 
-\[
+$$
 Q=\operatorname{TopK}(\text{Encoder Scores})
-\]
+$$
 
 这些候选包含：
 
@@ -446,20 +446,20 @@ DEIMv2 使用 SwiGLU FFN 替换传统 FFN。
 
 其基本形式为：
 
-\[
+$$
 \operatorname{SwiGLU}(x)=
 \operatorname{SiLU}(xW_g)\odot(xW_u)
-\]
+$$
 
 再经过输出投影：
 
-\[
+$$
 \operatorname{FFN}(x)=
 \left[
 \operatorname{SiLU}(xW_g)
 \odot(xW_u)
 \right]W_d
-\]
+$$
 
 其中：
 
@@ -474,12 +474,12 @@ DEIMv2 使用 SwiGLU FFN 替换传统 FFN。
 
 RMSNorm 不像 LayerNorm 那样减去均值，而是根据均方根进行缩放：
 
-\[
+$$
 \operatorname{RMSNorm}(x)=
 \frac{x}
 {\sqrt{\frac{1}{d}\sum_{i=1}^{d}x_i^2+\epsilon}}
 \odot\gamma
-\]
+$$
 
 其中：
 
@@ -505,15 +505,17 @@ DEIMv2 的边界框回归保留了 D-FINE 的 Fine-grained Distribution Refineme
 
 对于一个边界距离，可以将预测表示为：
 
-\[
+$$
 p=[p_0,p_1,\ldots,p_R]
-\]
+$$
 
-通过离散概率分布的期望得到连续距离：
+通过离散概率分布与非均匀权重函数得到连续距离。概念上可以表示为：
 
-\[
-d=\sum_{i=0}^{R}p_i\cdot i
-\]
+$
+d=\sum_{i=0}^{R}p_i\cdot w_i
+$
+
+其中 $w_i$ 是由 D-FINE 的非均匀 Weighting Function 生成的投影值，并非简单的等间距整数索引。
 
 其中 $R$ 为最大离散区间数，DEIMv2 配置中常见 reg_max=32。
 
@@ -609,7 +611,7 @@ DEIMv2 的总损失由五部分组成：
 
 整体可以表示为：
 
-\[
+$$
 \begin{aligned}
 L_{\text{total}}={}&
 \lambda_1L_{\text{MAL}}
@@ -618,11 +620,11 @@ L_{\text{total}}={}&
 &+\lambda_4L_{\text{bbox}}
 +\lambda_5L_{\text{GIoU}}
 \end{aligned}
-\]
+$$
 
 论文中使用的权重为：
 
-\[
+$$
 \begin{aligned}
 \lambda_1&=1.0\\
 \lambda_2&=0.15\\
@@ -630,7 +632,7 @@ L_{\text{total}}={}&
 \lambda_4&=5.0\\
 \lambda_5&=2.0
 \end{aligned}
-\]
+$$
 
 ### 9.1 MAL
 
@@ -668,19 +670,19 @@ FGL 和 DDF 主要用于 DINOv3 路线以及 Nano 等具有足够模型容量的
 
 L1 边界框损失：
 
-\[
+$$
 L_{\text{bbox}}=
 \sum_i
 \left\|
 b_i-\hat b_i
 \right\|_1
-\]
+$$
 
 GIoU Loss：
 
-\[
+$$
 L_{\text{GIoU}}=1-\operatorname{GIoU}(b,\hat b)
-\]
+$$
 
 L1 关注坐标差异，GIoU 则从几何重叠关系上衡量预测框与真实框之间的差异。
 
