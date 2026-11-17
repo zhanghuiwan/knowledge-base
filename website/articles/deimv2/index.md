@@ -81,7 +81,7 @@ DEIMv2 保留这套思路，但进一步扩展了模型结构：
 
 DEIMv2 的模型前向路径可以简化为：
 
-\[
+$$
 \text{Image}
 \rightarrow
 \text{Backbone}
@@ -91,7 +91,7 @@ DEIMv2 的模型前向路径可以简化为：
 \text{Decoder}
 \rightarrow
 \text{PostProcessor}
-\]
+$$
 
 其中最重要的结构差异是 Backbone 路线不同，导致 Encoder 也分成两种实现。
 
@@ -166,23 +166,23 @@ DINOv3 的 ViT Backbone 通过 Patch Embedding 将图像切分为 Patch Token，
 
 以 Patch Size = 16、输入尺寸 640 × 640 为例：
 
-\[
+$$
 H_p=W_p=\frac{640}{16}=40
-\]
+$$
 
 因此，Patch Token 对应的空间网格为：
 
-\[
+$$
 40\times40
-\]
+$$
 
 不考虑 Class Token 时，特征可以写成：
 
-\[
+$$
 F_{\text{ViT}}
 \in
 \mathbb{R}^{B\times D\times40\times40}
-\]
+$$
 
 其中：
 
@@ -214,13 +214,13 @@ DEIMv2 不只取 ViT 最后一层，而是从多个 Transformer Block 提取特�
 
 论文中举例使用第 5、8、11 层。因为 ViT 各层的 Patch Token 空间尺寸相同，都是 1/16 尺度，所以需要再通过 Resize 构造不同分辨率：
 
-\[
+$$
 \begin{aligned}
 F_{1/8} &= \operatorname{Resize}(F_a,80,80)\\
 F_{1/16} &= \operatorname{Resize}(F_b,40,40)\\
 F_{1/32} &= \operatorname{Resize}(F_c,20,20)
 \end{aligned}
-\]
+$$
 
 这里的 Resize 使用双线性插值。
 
@@ -275,7 +275,7 @@ STA 的关键不只是增加一个 CNN 分支，而是把 CNN 特征与 DINOv3 �
 
 对每个尺度，先将 DINOv3 特征调整到目标分辨率，再与空间先验特征在通道维度拼接：
 
-\[
+$$
 F_i^{\text{cat}}
 =
 \operatorname{Concat}
@@ -283,11 +283,11 @@ F_i^{\text{cat}}
 F_i^{\text{ViT}},
 F_i^{\text{Spatial}}
 \right)
-\]
+$$
 
 然后使用 1 × 1 Conv 进行通道投影：
 
-\[
+$$
 F_i^{\text{out}}
 =
 \operatorname{SyncBN}
@@ -295,7 +295,7 @@ F_i^{\text{out}}
 \operatorname{Conv}_{1\times1}
 (F_i^{\text{cat}})
 \right)
-\]
+$$
 
 整体流程：
 
@@ -375,6 +375,18 @@ L、X 的官方 YAML 使用 [5, 8, 11]。
 
 - [DINOv3 STA Adapter](https://github.com/Intellindust-AI-Lab/DEIMv2/blob/main/engine/backbone/dinov3_adapter.py)
 - [ViT-Tiny 实现](https://github.com/Intellindust-AI-Lab/DEIMv2/blob/main/engine/backbone/vit_tiny.py)
+
+
+### 4.8 论文表格与当前公开配置的 L 规格差异
+
+还有一处需要保留记录的差异：
+
+- 论文 v5 的模型表中，L 的 Encoder / Decoder Hidden Dimension 标为 256。
+- 当前 GitHub 的 L YAML 和官方 hf_models.ipynb 示例中，STA 输出、HybridEncoder 和 DEIMTransformer 的 hidden_dim 使用 224。
+
+因此，本文在解释当前源码配置时使用 224；在引用论文表格时保留论文原文的 256。公开资料不足以确认这两个版本是否对应完全相同的训练快照，不能把论文表格与当前配置拼成一份“统一配置”。
+
+复现时应锁定仓库 commit、YAML、checkpoint 和 Hub config.json，并确认它们的通道维度一致。
 
 ## 五、HGNetv2 轻量化路线
 
@@ -460,13 +472,13 @@ flowchart TD
 
 官方代码中的 GAP_Fusion 逻辑很简单：
 
-\[
+$$
 G=\operatorname{GAP}(F)
-\]
+$$
 
-\[
+$$
 F'=F+G
-\]
+$$
 
 其中：
 
@@ -494,21 +506,21 @@ HybridEncoder 首先使用 1 × 1 Conv 和 BatchNorm，将输入特征投影到�
 
 例如 DEIMv2-S：
 
-\[
+$$
 [P_3,P_4,P_5]
-\]
+$$
 
 输入通道：
 
-\[
+$$
 [192,192,192]
-\]
+$$
 
 Encoder Hidden Dimension：
 
-\[
+$$
 D=192
-\]
+$$
 
 由于输入通道已经一致，可以使用 Identity，不必额外投影。
 
@@ -535,17 +547,17 @@ HybridEncoder 并不是把所有尺度都送进 Transformer。
 
 首先将二维特征展开：
 
-\[
+$$
 F\in\mathbb{R}^{B\times C\times H\times W}
-\]
+$$
 
 转换为：
 
-\[
+$$
 F_{\text{flat}}
 \in
 \mathbb{R}^{B\times HW\times C}
-\]
+$$
 
 随后加入 2D Sine-Cosine Position Embedding，进行 Transformer 编码，再恢复为二维特征图。
 
@@ -561,10 +573,10 @@ FPN 从高层语义特征开始：
 
 DEIMv2 的相关配置使用 fuse_op = sum，因此融合是逐元素相加：
 
-\[
+$$
 F_{\text{fuse}}=
 F_{\text{upsample}}+F_{\text{lateral}}
-\]
+$$
 
 这要求两个特征具有相同的空间尺寸和通道数。
 
@@ -626,33 +638,33 @@ DEIMv2 的 Decoder 不是普通的 Transformer Decoder，而是结合了 Deforma
 
 将三个特征图展平后，空间 Token 数量为：
 
-\[
+$$
 N=80^2+40^2+20^2
-\]
+$$
 
-\[
+$$
 N=6400+1600+400=8400
-\]
+$$
 
 所以 Encoder Memory 可以表示为：
 
-\[
+$$
 M\in\mathbb{R}^{B\times8400\times192}
-\]
+$$
 
 接下来，Decoder 会为各个空间位置生成初始 Anchor，并通过 Encoder 分类分支得到初始分类分数。
 
 随后按照分类分数选择 Top-K 候选：
 
-\[
+$$
 Q=\operatorname{TopK}(S_{\text{encoder}},K)
-\]
+$$
 
 S 模型中：
 
-\[
+$$
 K=300
-\]
+$$
 
 得到 300 个候选 Query。
 
@@ -714,17 +726,17 @@ DEIMv2 使用 Multi-Scale Deformable Attention，根据 Reference Points 在不�
 
 当开启 Gateway 时，模型将 Cross-Attention 输出和残差分支拼接，通过线性层生成两个 Gate：
 
-\[
+$$
 [g_1,g_2]=
 \sigma(W[x_1,x_2]+b)
-\]
+$$
 
 然后融合：
 
-\[
+$$
 F_{\text{out}}=
 \operatorname{RMSNorm}(g_1x_1+g_2x_2)
-\]
+$$
 
 其中：
 
@@ -740,24 +752,24 @@ S、M、L、X 和 Nano 的配置默认使用 Gateway；Pico、Femto、Atto 的�
 
 传统 FFN 通常是两层线性映射：
 
-\[
+$$
 \operatorname{FFN}(x)=
 W_2\sigma(W_1x)
-\]
+$$
 
 DEIMv2 使用 SwiGLUFFN：
 
-\[
+$$
 \operatorname{SwiGLU}(x)=
 \operatorname{SiLU}(xW_1)
 \odot(xW_2)
-\]
+$$
 
 然后通过输出投影：
 
-\[
+$$
 y=\operatorname{SwiGLU}(x)W_3
-\]
+$$
 
 其中：
 
@@ -772,12 +784,12 @@ y=\operatorname{SwiGLU}(x)W_3
 
 RMSNorm 根据输入特征的均方根进行缩放：
 
-\[
+$$
 \operatorname{RMSNorm}(x)=
 \frac{x}
 {\sqrt{\operatorname{Mean}(x^2)+\epsilon}}
 \odot\gamma
-\]
+$$
 
 其中：
 
@@ -794,17 +806,17 @@ DEIMv2 在 Decoder 中使用 RMSNorm 替换常规 LayerNorm。
 
 Decoder 需要根据 Reference Points 生成 Query Position Embedding：
 
-\[
+$$
 P_q=\operatorname{MLP}(R_q)
-\]
+$$
 
 传统实现可能在每一层重复生成或更新位置编码。
 
 DEIMv2 的实现是在 Decoder 开始时根据初始 Reference Points 计算：
 
-\[
+$$
 P_q=\operatorname{MLP}(R_q^{(0)})
-\]
+$$
 
 然后在后续 Decoder Layer 中复用这一位置编码。
 
@@ -828,23 +840,23 @@ DEIMv2 的边界框预测不是简单地直接回归四个连续坐标。
 
 假设某个方向的分类 Logits 为：
 
-\[
+$$
 z=[z_0,z_1,\ldots,z_{32}]
-\]
+$$
 
 先经过 Softmax：
 
-\[
+$$
 p_i=
 \frac{\exp(z_i)}
 {\sum_{j=0}^{32}\exp(z_j)}
-\]
+$$
 
 再与非均匀 Weighting Function 的值进行加权：
 
-\[
+$$
 d=\sum_{i=0}^{32}p_iW(i)
-\]
+$$
 
 其中 \(W(i)\) 不是简单的等间距整数索引，而是由 reg_max、up 和 reg_scale 共同决定的非均匀权重序列。
 
@@ -892,9 +904,9 @@ MixUp：
 
 将两张图片按照一定比例混合：
 
-\[
+$$
 I=\beta I_1+(1-\beta)I_2
-\]
+$$
 
 目标标注也需要合并，并记录对应的混合权重。
 
@@ -942,11 +954,11 @@ flowchart TD
 
 源码中默认的混合系数在 0.45 到 0.55 之间随机选择：
 
-\[
+$$
 I_{\text{new}}=
 \beta I_{\text{target}}
 +(1-\beta)I_{\text{source}}
-\]
+$$
 
 当 copyblend_type 为 blend 时执行混合；否则直接覆盖对应区域。
 
@@ -987,12 +999,12 @@ DEIMv2 仍然使用 Hungarian Matching。
 
 传统匹配成本可以写成：
 
-\[
+$$
 C=
 \lambda_c C_{\text{class}}
 +\lambda_b C_{\text{bbox}}
 +\lambda_g C_{\text{GIoU}}
-\]
+$$
 
 其中：
 
@@ -1004,9 +1016,9 @@ C=
 
 当 change_matcher 启用并且达到 matcher_change_epoch 后，代码使用：
 
-\[
+$$
 C=-p_{\text{class}}\cdot IoU^\alpha
-\]
+$$
 
 其中：
 
@@ -1030,7 +1042,7 @@ C=-p_{\text{class}}\cdot IoU^\alpha
 
 DEIMv2 的总损失由五部分组成：
 
-\[
+$$
 \begin{aligned}
 L_{\text{total}}={}&
 \lambda_1L_{\text{MAL}}
@@ -1039,11 +1051,11 @@ L_{\text{total}}={}&
 &+\lambda_4L_{\text{BBox}}
 +\lambda_5L_{\text{GIoU}}
 \end{aligned}
-\]
+$$
 
 论文中的权重：
 
-\[
+$$
 \begin{aligned}
 \lambda_1&=1.0\\
 \lambda_2&=0.15\\
@@ -1051,7 +1063,7 @@ L_{\text{total}}={}&
 \lambda_4&=5.0\\
 \lambda_5&=2.0
 \end{aligned}
-\]
+$$
 
 ### 9.1 MAL：Matchability-Aware Loss
 
@@ -1061,17 +1073,17 @@ MAL 来自 DEIM。
 
 对于匹配到的预测框，先计算 IoU：
 
-\[
+$$
 q_i=IoU(\hat b_i,b_i)
-\]
+$$
 
 再将这个质量分数用于构造分类监督。
 
 在官方实现中，正样本目标分数与 IoU 的幂次相关：
 
-\[
+$$
 y_i=q_i^\gamma
-\]
+$$
 
 负样本的权重则与预测置信度有关。
 
@@ -1087,17 +1099,17 @@ y_i=q_i^\gamma
 
 L1 边界框损失：
 
-\[
+$$
 L_{\text{BBox}}=
 \sum_i\|\hat b_i-b_i\|_1
-\]
+$$
 
 GIoU Loss：
 
-\[
+$$
 L_{\text{GIoU}}=
 1-\operatorname{GIoU}(\hat b_i,b_i)
-\]
+$$
 
 两者关注点不同：
 
@@ -1133,7 +1145,7 @@ DDF 也是 D-FINE 相关的局部定位损失。
 
 概念上可以写为：
 
-\[
+$$
 L_{\text{DDF}}
 \sim
 T^2
@@ -1143,7 +1155,7 @@ P_{\text{final}}^{(T)}
 \parallel
 P_{\text{intermediate}}^{(T)}
 \right)
-\]
+$$
 
 其中：
 
