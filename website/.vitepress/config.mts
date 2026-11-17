@@ -29,7 +29,8 @@ export default defineConfig({
       { text: 'RT-DETR', link: '/articles/rt-detr/' },
       { text: 'RF-DETR', link: '/articles/rf-detr/' },
       { text: 'DINOv3', link: '/articles/dinov3/' },
-      { text: 'ZGCM-1', link: '/articles/zgcm-1/' }
+      { text: 'ZGCM-1', link: '/articles/zgcm-1/' },
+      { text: 'DEIMv2', link: '/articles/deimv2/' }
     ]}]},
     outline: { level: [2, 3], label: '本页目录' },
     search: { provider: 'local' },

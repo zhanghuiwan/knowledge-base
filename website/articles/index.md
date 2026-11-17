@@ -11,3 +11,4 @@ title: 文章
 - [RF-DETR：网络架构、NAS 搜索与源码解析](/articles/rf-detr/)
 - [DINOv3：网络架构、自监督训练、Gram Anchoring 与模型蒸馏](/articles/dinov3/)
 - [ZGCM-1：Transformer 数据流、参数量计算、MLA 与 MoE](/articles/zgcm-1/)
+- [DEIMv2：融合 DINOv3 的实时 DETR 目标检测器](/articles/deimv2/)
