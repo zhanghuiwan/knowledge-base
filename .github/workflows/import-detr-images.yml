@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - 'website/articles/detr/index.md'
+      - '.github/workflows/import-detr-images.yml'
   workflow_dispatch:
 permissions:
   contents: write
@@ -38,7 +39,7 @@ jobs:
                   try:
                       with urllib.request.urlopen(req, timeout=20) as res:
                           data = res.read()
-                      if not data.startswith(b"\\x89PNG\\r\\n\\x1a\\n"):
+                      if not data.startswith(bytes([137, 80, 78, 71, 13, 10, 26, 10])):
                           raise ValueError(f"Invalid PNG response: {len(data)} bytes, prefix {data[:16]!r}")
                       dest.write_bytes(data)
                       print("DOWNLOADED", name, len(data), url)
