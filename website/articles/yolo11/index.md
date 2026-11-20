@@ -867,7 +867,7 @@ Feature Map、Attention Map 和 Grad-CAM 可以帮助观察网络内部响应，
 
 ## 8. 数据集与实验设置
 
-Ultralytics 官方 YOLO11 Detection 性能表使用 COCO 检测任务，包含 80 个预训练类别，输入尺寸为 640。
+Ultralytics 官方 YOLO11 Detection 性能表使用 COCO 检测任务，包含 80 个类别，输入尺寸为 640。COCO 2017 的常用划分为 train2017（118,287 张图像）和 val2017（5,000 张图像）；官方性能表给出的是 COCO 验证性能。可参考 [COCO 数据集官网](https://cocodataset.org/)。
 
 需要区分：
 
@@ -890,6 +890,15 @@ Ultralytics 官方 YOLO11 Detection 性能表使用 COCO 检测任务，包含 8
 | YOLO11m | 640 | 51.5 | 183.2 ± 2.0 ms | 4.7 ± 0.1 ms | 20.1 M | 68.1 B |
 | YOLO11l | 640 | 53.4 | 238.6 ± 1.4 ms | 6.2 ± 0.1 ms | 25.3 M | 87.2 B |
 | YOLO11x | 640 | 54.7 | 462.8 ± 6.7 ms | 11.3 ± 0.2 ms | 56.9 M | 195.3 B |
+
+### 9.2 指标如何理解？
+
+- **Precision**：预测为正的结果中，有多少是真正例，计算为 TP / (TP + FP)。
+- **Recall**：所有真实目标中，有多少被检测出来，计算为 TP / (TP + FN)。
+- **AP**：在指定 IoU 匹配阈值下，Precision-Recall 曲线下的面积。
+- **mAP50-95**：对 IoU 阈值 0.50、0.55、……、0.95 分别计算 AP，再对阈值和类别求平均，是 COCO 常用的主指标。
+
+因此，mAP50-95 同时考虑分类和定位质量；它比单独的 AP50 更严格，不能将两者混为一谈。
 
 说明：
 
