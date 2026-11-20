@@ -22,6 +22,8 @@
 开始任务前先判断任务类型，再阅读对应文件，不要无差别加载全部 Skill：
 
 - 新建文章或修改文章：阅读 `skills/knowledge-article.md`。
+- 阅读、总结视觉领域论文，或解释视觉模型架构、训练、推理与实验：阅读 `skills/vision-model-study.md`。
+- 将视觉模型研究整理成知识库文章：同时阅读 `skills/vision-model-study.md` 和 `skills/knowledge-article.md`；前者规定研究内容与技术深度，后者规定 Markdown 编写、公式、图表和发布规范。
 - 修改网站布局、样式或网站配置：阅读 `skills/website-design.md` 和 `skills/modify-website.md`。
 - 同时涉及文章和网站：阅读 `skills/knowledge-article.md`，并按需阅读网站相关 Skill。
 
