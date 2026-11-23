@@ -1996,6 +1996,18 @@ $$
 - 一个输出为 1715 的 Connected Layer。
 - Detection Layer。
 
+该配置还明确设置了以下 Detection Layer 参数：
+
+| 参数 | 配置值 | 含义 |
+|---|---:|---|
+| `rescore` | 1 | 负责预测器的 Confidence 梯度目标使用预测框与 GT 的 IoU |
+| `sqrt` | 1 | 宽高坐标按平方根形式参与回归 |
+| `softmax` | 0 | 不对类别输出执行 Softmax |
+| `object_scale` | 1 | 正样本 Confidence 损失权重 |
+| `noobject_scale` | 0.5 | No-Object Confidence 损失权重 |
+| `class_scale` | 1 | 分类损失权重 |
+| `coord_scale` | 5 | 坐标损失权重 |
+
 因此，不能把当前 `cfg/yolov1.cfg` 的全部配置直接当作论文 Figure 3 的精确网络结构。
 
 ### 18.3 Darknet 的 `cfg/yolov1-tiny.cfg`
