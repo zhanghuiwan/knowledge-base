@@ -25,6 +25,7 @@ export default defineConfig({
     nav: [{ text: '首页', link: '/' }, { text: '文章', link: '/articles/' }],
     sidebar: { '/articles/': [{ text: '知识文章', items: [
       { text: '文章总览', link: '/articles/' },
+      { text: 'YOLOv1', link: '/articles/yolov1/' },
       { text: 'YOLO11', link: '/articles/yolo11/' },
       { text: 'YOLO11 / YOLO26', link: '/articles/yolo11-yolo26/' },
       { text: 'DETR', link: '/articles/detr/' },
