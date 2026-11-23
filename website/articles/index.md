@@ -7,6 +7,7 @@ title: 文章
 目前收录以下文章：
 
 - [YOLOv1：网络结构、Confidence、Loss 与完整训练推理解析](/articles/yolov1/)
+- [YOLOv2 与 YOLO9000：Anchor、Darknet-19、Passthrough 与联合训练](/articles/yolov2/)
 - [YOLO11：网络架构、训练机制与源码解析](/articles/yolo11/)
 - [YOLO11 与 YOLO26：网络架构、核心模块与部署解析](/articles/yolo11-yolo26/)
 - [RT-DETR：原理、网络结构与源码解析](/articles/rt-detr/)
