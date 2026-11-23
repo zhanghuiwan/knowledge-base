@@ -738,15 +738,15 @@ Reorg 不执行插值，也不使用卷积核学习参数，而是重新排列�
 
 官方配置中 Reorg 的输入：
 
-$
+$$
 X\in\mathbb{R}^{B\times64\times26\times26}
-$
+$$
 
 Stride=2 后：
 
-$
+$$
 Y\in\mathbb{R}^{B\times256\times13\times13}
-$
+$$
 
 如果按照论文正文描述直接对 512 通道特征执行 Reorg，则会得到 $B\times2048\times13\times13$。Reorg 本身的空间到通道变换规则相同，差异来自 Darknet 配置在 Reorg 前加入了 1×1 通道压缩。
 
@@ -782,10 +782,10 @@ $$
 
 在通道维度 Concat：
 
-$
+$$
 13\times13\times(256+1024)
 =\boxed{13\times13\times1280}
-$
+$$
 
 若按论文正文中未压缩的 2048 通道 Passthrough 描述，则融合通道数会是 $2048+1024=3072$。这正是论文文字描述与作者配置实现需要区分的地方。
 
