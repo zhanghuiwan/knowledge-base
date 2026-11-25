@@ -18,7 +18,7 @@ description: 从论文 v5、官方源码、模型配置和 Hugging Face 权重�
 
 ## 一、先理解 DEIMv2 是什么
 
-DEIMv2 的论文标题是 **Real-Time Object Detection Meets DINOv3**。它建立在作者此前的 DEIM 训练框架上，将 DINOv3 的视觉特征引入实时 DETR 检测器，同时保留面向轻量部署的 CNN 路线。
+DEIMv2 的论文标题是 **Real-Time Object Detection Meets DINOv3**，作者为 Shihua Huang、Yongjie Hou、Longfei Liu、Xuanlong Yu 和 Xi Shen。它建立在作者此前的 DEIM 训练框架上，将 DINOv3 的视觉特征引入实时 DETR 检测器，同时保留面向轻量部署的 CNN 路线。
 
 它不是简单地把 DINOv3 接到一个 DETR Head 上。完整系统包含四类设计：
 
@@ -1195,6 +1195,8 @@ $$
 | 模型 | DEIM AP_S | DEIMv2 AP_S | DEIM AP_M | DEIMv2 AP_M | DEIM AP_L | DEIMv2 AP_L |
 |---|---:|---:|---:|---:|---:|---:|
 | S | 30.4 | 31.4 | 52.6 | 55.3 | 65.7 | 70.3 |
+| M | 35.3 | 34.2 | 56.7 | 57.4 | 69.5 | 71.5 |
+| L | 36.9 | 37.5 | 59.6 | 60.8 | 71.8 | 75.2 |
 | X | 38.8 | 39.2 | 61.4 | 62.9 | 74.2 | 75.9 |
 
 可以看到：
@@ -1230,7 +1232,7 @@ DEIMv2 的轻量路线与 DINOv3 路线目标不同：
 
 旧资料中出现的 S 25.6G、M 52.2G、L 96.7G、X 151.6G 等数值属于旧统计口径，不应与修正后的数据混用。
 
-另外，论文 Table 1 与当前 README 对 Atto/Femto 的延迟数据存在差异。例如论文表格中 Atto/Femto 为 1.61/1.91 ms，而当前 README 为 1.10/1.45 ms。由于这些数据需要结合具体硬件、精度、推理框架和测试流程才能进行公平比较，本文不将延迟作为统一横向排名依据。实际部署应在目标设备上重新 Benchmark。
+另外，论文 Table 1 与当前 README 对 Atto/Femto 的延迟数据存在差异。例如论文表格中 Atto/Femto 为 1.61/1.91 ms，而当前 README 为 1.10/1.45 ms。论文也明确说明其延迟尚未充分优化，并指出 Flash Attention 等技术可能进一步加速推理。由于这些数据需要结合具体硬件、精度、推理框架和测试流程才能进行公平比较，本文不将延迟作为统一横向排名依据。实际部署应在目标设备上重新 Benchmark。
 
 ### 9.6 论文没有充分回答的问题
 
