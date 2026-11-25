@@ -324,6 +324,8 @@ $$
 
 **STA 的本质不是简单地把 ViT 特征上采样，而是将高层语义特征与从原始图像提取的局部细节结合。** 这也是它区别于仅使用 Feature Pyramid Upsampling 的关键。
 
+论文 Fig.2 中 Bi-Fusion 小图里的 Bilinear 对应语义特征的双线性插值；官方代码在融合前通过 `F.interpolate(..., mode="bilinear")` 调整 ViT 特征的空间尺寸。它不是一个额外的可学习 Bilinear Layer。之后才将插值后的语义特征与 CNN 细节特征拼接，并通过 1×1 Conv 投影。
+
 但上采样不会凭空恢复 ViT Patch Embedding 之前已经丢失的细节。STA 的 CNN 分支能够补充原图局部信息，却不能保证极小目标一定被保留；后面会结合实验结果讨论这一点。
 
 ### 3.6 S/M 与 L/X 的预训练差异
@@ -1018,7 +1020,7 @@ expand_ratios: [0.1, 0.25]
 - with_expand：是否在裁剪区域周围扩展上下文。
 - expand_ratios：扩展比例范围。
 
-**源码实现上的一个细节：** 当前 Copy-Blend 使用 Bounding Box 对应的矩形 Patch，而不是实例分割 Mask。因此，如果 GT Box 内含有背景，背景也可能一起被复制或混合。这与理想化的“只复制物体前景”并不完全相同。
+**论文与源码之间有一个值得注意的细节：** 论文文字将 Copy-Blend 描述为添加不带背景的对象；但在当前公开实现中，源码根据 GT Bounding Box 裁剪矩形 Patch，并没有使用实例分割 Mask 做前景抠图。因此，实际复制的 Patch 可能包含框内背景或周围上下文。论文描述的是方法目标，源码展示的是可复现的具体操作，两者不应被混为一谈。
 
 ### 7.4 MixUp 与 Copy-Blend 是否同时执行？
 
@@ -1045,6 +1047,23 @@ expand_ratios: [0.1, 0.25]
 | Atto | 320 | 468 | 0.3 | 0 | 0 | 否 |
 
 注意：论文 Table 2 的 Epoch 与当前 YAML 中的 epoches 配置字段值并不总是相同。官方配置会额外包含 EMA 搜索或训练尾段；例如 S 的 YAML 为 132，而论文表中报告 120。复现实验时必须使用对应规格的完整 YAML，不能只复制论文表格中的 Epoch 数。
+
+### 7.6 优化器与学习率
+
+论文 Table 2 使用 AdamW。不同 Backbone 路线的学习率并不相同：预训练 ViT Backbone 使用较小的学习率，检测 Encoder/Decoder 使用较大的学习率；HGNetv2 轻量模型则采用更大的整体学习率。
+
+| 规格 | Optimizer | Base LR | Min LR | Backbone LR | Weight Decay |
+|---|---|---:|---:|---:|---:|
+| X | AdamW | 5e-4 | 2.5e-4 | 1e-6 | 1.25e-4 |
+| L | AdamW | 5e-4 | 2.5e-4 | 1.25e-5 | 1.25e-4 |
+| M | AdamW | 5e-4 | 2.5e-4 | 2.5e-5 | 1e-4 |
+| S | AdamW | 5e-4 | 2.5e-4 | 2.5e-5 | 1e-4 |
+| Nano | AdamW | 8e-4 | 8e-4 | 4e-4 | 1e-4 |
+| Pico | AdamW | 1.6e-3 | 8e-4 | 8e-4 | 1e-4 |
+| Femto | AdamW | 1.6e-3 | 8e-4 | 8e-4 | 1e-4 |
+| Atto | AdamW | 2e-3 | 1e-3 | 1e-3 | 1e-4 |
+
+这些是论文表格中的训练超参数，不应直接当作自定义数据集的最优配置。尤其当目标数据集规模、Batch Size、图像尺寸或预训练权重发生变化时，需要重新验证学习率和训练稳定性。
 
 ## 八、训练与推理的数据流
 
